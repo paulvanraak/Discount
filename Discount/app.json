@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Donnie Discount",
+    "slug": "donnie-discount",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF8C00"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.donniediscount.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF8C00"
+      },
+      "package": "com.donniediscount.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [],
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
