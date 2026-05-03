@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -91,7 +91,7 @@ export default function LanguageScreen({ navigation }) {
                   <Text style={[styles.langSub, active && styles.langSubActive]}>{l.sub}</Text>
                   {active && (
                     <View style={styles.checkCircle}>
-                      <MaterialIcons name="check" size={12} color="#fff" />
+                      <Icon name="check" size={12} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -113,7 +113,7 @@ export default function LanguageScreen({ navigation }) {
                   onPress={() => setSelectedRegion(r.code)}
                   activeOpacity={0.85}
                 >
-                  {active && <MaterialIcons name="check" size={14} color={C_RED} style={{ marginRight: 4 }} />}
+                  {active && <Icon name="check" size={14} color={C_RED} style={{ marginRight: 4 }} />}
                   <Text style={[styles.regionCode, active && styles.regionCodeActive]}>{r.code}</Text>
                   <Text style={[styles.regionName, active && styles.regionNameActive]}>{r.name}</Text>
                 </TouchableOpacity>
@@ -125,7 +125,7 @@ export default function LanguageScreen({ navigation }) {
         {/* Continue button */}
         <TouchableOpacity style={styles.continueBtn} onPress={handleContinue} activeOpacity={0.9}>
           <Text style={styles.continueTxt}>Doorgaan</Text>
-          <MaterialIcons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+          <Icon name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -165,12 +165,12 @@ const styles = StyleSheet.create({
   },
   brandMarkTxt: {
     color: C_WHITE,
-    fontFamily: 'Poppins, system-ui, sans-serif',
-    fontWeight: '900',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontWeight: '800',
     fontSize: 18,
   },
   brandName: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 20,
     fontWeight: '700',
     color: C_WHITE,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
 
   section: { marginBottom: 28 },
   sectionLabel: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.5)',
@@ -206,22 +206,22 @@ const styles = StyleSheet.create({
     borderColor: C_WHITE,
   },
   langAbbr: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '800',
     color: 'rgba(255,255,255,0.9)',
     marginBottom: 4,
   },
   langAbbrActive: { color: C_RED },
   langName: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 14,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.9)',
   },
   langNameActive: { color: C_DARK },
   langSub: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 11,
     color: 'rgba(255,255,255,0.5)',
     marginTop: 2,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     borderColor: C_WHITE,
   },
   regionCode: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     fontWeight: '800',
     color: 'rgba(255,255,255,0.9)',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   regionCodeActive: { color: C_RED },
   regionName: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     fontWeight: '500',
     color: 'rgba(255,255,255,0.7)',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   continueTxt: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     color: C_WHITE,
     fontWeight: '700',
     fontSize: 16,

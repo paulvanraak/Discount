@@ -3,7 +3,7 @@ import {
   Modal, View, Text, Image, StyleSheet, TouchableOpacity,
   ScrollView, Linking, Share, Platform,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { C, R } from '../data/theme';
 
 export default function DealModal({ deal, visible, onClose, isFavorited, onFavorite, t }) {
@@ -39,7 +39,7 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
               <Text style={styles.flagText}>-{deal.discountPercentage}%</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <MaterialIcons name="close" size={18} color={C.dark} />
+              <Icon name="close" size={18} color={C.dark} />
             </TouchableOpacity>
           </View>
 
@@ -66,12 +66,12 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
 
             <TouchableOpacity style={styles.ctaBtn} onPress={handleViewDeal}>
               <Text style={styles.ctaText}>Bekijk Deal bij {store.name}</Text>
-              <MaterialIcons name="arrow-forward" size={18} color={C.white} style={{ marginLeft: 6 }} />
+              <Icon name="arrow-forward" size={18} color={C.white} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
 
             <View style={styles.actions}>
               <TouchableOpacity style={styles.actionBtn} onPress={onFavorite}>
-                <MaterialIcons
+                <Icon
                   name={isFavorited ? 'favorite' : 'favorite-border'}
                   size={24}
                   color={isFavorited ? C.red : C.grey}
@@ -79,7 +79,7 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
                 <Text style={styles.actionLabel}>{isFavorited ? 'Opgeslagen' : 'Opslaan'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
-                <MaterialIcons name="share" size={24} color={C.grey} />
+                <Icon name="share" size={24} color={C.grey} />
                 <Text style={styles.actionLabel}>Delen</Text>
               </TouchableOpacity>
             </View>
@@ -93,7 +93,7 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
 function InfoRow({ icon, label, value }) {
   return (
     <View style={styles.infoRow}>
-      <MaterialIcons name={icon} size={18} color={C.grey} style={{ width: 24 }} />
+      <Icon name={icon} size={18} color={C.grey} style={{ width: 24 }} />
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   flagText: {
     color: C.white,
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontWeight: '800',
     fontSize: 14,
   },
@@ -185,12 +185,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   storeText: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 11,
     fontWeight: '700',
   },
   title: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 18,
     fontWeight: '700',
     color: C.dark,
@@ -204,22 +204,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dealPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '800',
     color: C.dark,
   },
   priceRight: {
     alignItems: 'flex-end',
   },
   origPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 14,
     color: C.grey,
     textDecorationLine: 'line-through',
   },
   savings: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 12,
     fontWeight: '600',
     color: C.success,
@@ -237,13 +237,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoLabel: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 12,
     color: C.grey,
     width: 60,
   },
   infoValue: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 12,
     fontWeight: '600',
     color: C.dark,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     color: C.white,
     fontWeight: '700',
     fontSize: 15,
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionLabel: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 11,
     color: C.grey,
     fontWeight: '500',

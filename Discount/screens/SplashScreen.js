@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 48,
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#fff',
   },
   logoSub: {

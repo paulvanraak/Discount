@@ -2,9 +2,9 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   RefreshControl, TouchableOpacity, TextInput,
-  ActivityIndicator, ScrollView, Platform, Image,
+  ActivityIndicator, Platform, Image,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DealCard from '../components/DealCard';
 import DealModal from '../components/DealModal';
@@ -188,9 +188,7 @@ export default function HomeScreen() {
 
   const activeFilterCount = [activeCat !== 'all', activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
 
-  // Derive featured + flash deals from current result set
   const featuredDeal = allDeals.find(d => d.fomoKey === 'hot') || allDeals[0];
-  const flashDeals = allDeals.filter(d => ['flash', 'hour3', 'limited', 'timer'].includes(d.fomoKey)).slice(0, 6);
   const gridDeals = deals;
 
   return (
@@ -199,7 +197,7 @@ export default function HomeScreen() {
       {/* ── Top Bar ──────────────────────────────────────────────────── */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
-          <MaterialIcons name="tune" size={20} color={C.dark} />
+          <Icon name="tune" size={20} color={C.dark} />
           {activeFilterCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeTxt}>{activeFilterCount}</Text>
@@ -212,7 +210,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
-          <MaterialIcons name="search" size={16} color={C.grey} />
+          <Icon name="search" size={16} color={C.grey} />
           <TextInput
             ref={searchRef}
             style={styles.searchInput}
@@ -227,13 +225,13 @@ export default function HomeScreen() {
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => { setQuery(''); setSuggestions([]); applyFilters(); }}>
-              <MaterialIcons name="close" size={16} color={C.grey} />
+              <Icon name="close" size={16} color={C.grey} />
             </TouchableOpacity>
           )}
         </View>
 
         <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
-          <MaterialIcons name="menu" size={20} color={C.dark} />
+          <Icon name="menu" size={20} color={C.dark} />
         </TouchableOpacity>
       </View>
 
@@ -242,7 +240,7 @@ export default function HomeScreen() {
         <View style={styles.suggestions}>
           {suggestions.map(s => (
             <TouchableOpacity key={s.id} style={styles.suggestion} onPress={() => handleSuggestionTap(s)}>
-              <MaterialIcons name="search" size={14} color={C.grey} />
+              <Icon name="search" size={14} color={C.grey} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.suggestionTitle} numberOfLines={1}>{s.title}</Text>
                 <Text style={styles.suggestionPrice}>€{s.discountedPrice.toFixed(2)} · -{s.discountPercentage}%</Text>
@@ -281,7 +279,6 @@ export default function HomeScreen() {
                 ListHeaderComponent={
                   <HomeHeader
                     featuredDeal={featuredDeal}
-                    flashDeals={flashDeals}
                     dealCount={allDeals.length}
                     favorites={favorites}
                     onDealPress={handleDealPress}
@@ -367,7 +364,7 @@ export default function HomeScreen() {
 
 /* ── Premium Home Header ─────────────────────────────────────────────── */
 
-function HomeHeader({ featuredDeal, flashDeals, dealCount, favorites, onDealPress, onFavorite, t }) {
+function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorite, t }) {
   if (!featuredDeal) return null;
 
   const store = t?.affiliates?.[featuredDeal.affiliateStore] ?? { name: featuredDeal.affiliateStore, color: C.navy };
@@ -377,7 +374,7 @@ function HomeHeader({ featuredDeal, flashDeals, dealCount, favorites, onDealPres
       {/* Featured Deal */}
       <View style={styles.featuredWrap}>
         <View style={styles.featuredLabelRow}>
-          <MaterialIcons name="local-fire-department" size={14} color={C.red} />
+          <Icon name="local-fire-department" size={14} color={C.red} />
           <Text style={styles.featuredLabel}>UITGELICHTE DEAL</Text>
         </View>
 
@@ -401,7 +398,7 @@ function HomeHeader({ featuredDeal, flashDeals, dealCount, favorites, onDealPres
             onPress={() => onFavorite(featuredDeal.id)}
             hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           >
-            <MaterialIcons
+            <Icon
               name={favorites.has(featuredDeal.id) ? 'favorite' : 'favorite-border'}
               size={18}
               color={favorites.has(featuredDeal.id) ? C.red : C.grey}
@@ -410,53 +407,12 @@ function HomeHeader({ featuredDeal, flashDeals, dealCount, favorites, onDealPres
         </TouchableOpacity>
       </View>
 
-      {/* Flash Deals horizontal scroll */}
-      {flashDeals.length > 0 && (
-        <View style={styles.flashSection}>
-          <View style={styles.sectionHeaderRow}>
-            <MaterialIcons name="bolt" size={18} color={C.warning} />
-            <Text style={styles.sectionTitle}>Flash Deals</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.flashScroll}>
-            {flashDeals.map(deal => (
-              <FlashCard
-                key={deal.id}
-                deal={deal}
-                isFavorited={favorites.has(deal.id)}
-                onPress={() => onDealPress(deal)}
-                onFavorite={() => onFavorite(deal.id)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
       {/* All deals section header */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Alle Deals</Text>
         <Text style={styles.sectionCount}>{dealCount} gevonden</Text>
       </View>
     </View>
-  );
-}
-
-function FlashCard({ deal, isFavorited, onPress, onFavorite }) {
-  return (
-    <TouchableOpacity style={styles.flashCard} onPress={onPress} activeOpacity={0.92}>
-      <View style={styles.flashImageWrap}>
-        <Image source={{ uri: deal.image }} style={styles.flashImage} resizeMode="cover" />
-        <View style={styles.flashFlag}>
-          <Text style={styles.flashFlagTxt}>-{deal.discountPercentage}%</Text>
-        </View>
-        <TouchableOpacity style={styles.flashHeart} onPress={onFavorite} hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}>
-          <MaterialIcons name={isFavorited ? 'favorite' : 'favorite-border'} size={13} color={isFavorited ? C.red : C.grey} />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.flashInfo}>
-        <Text style={styles.flashTitle} numberOfLines={2}>{deal.title}</Text>
-        <Text style={styles.flashPrice}>€{deal.discountedPrice.toFixed(2)}</Text>
-      </View>
-    </TouchableOpacity>
   );
 }
 
@@ -468,12 +424,12 @@ function TabBtn({ icon, iconActive, label, active, isCenter, badge, onPress }) {
     <TouchableOpacity style={[styles.tabBtn, isCenter && styles.tabBtnCenter]} onPress={onPress} activeOpacity={0.8}>
       {isCenter ? (
         <View style={[styles.tabCenterInner, active && styles.tabCenterActive]}>
-          <MaterialIcons name={iconName} size={26} color={active ? C.white : C.grey} />
+          <Icon name={iconName} size={26} color={active ? C.white : C.grey} />
         </View>
       ) : (
         <View style={styles.tabBtnInner}>
           <View style={{ position: 'relative' }}>
-            <MaterialIcons name={iconName} size={22} color={active ? C.red : C.grey} />
+            <Icon name={iconName} size={22} color={active ? C.red : C.grey} />
             {badge != null && (
               <View style={styles.tabBadge}>
                 <Text style={styles.tabBadgeTxt}>{badge > 9 ? '9+' : badge}</Text>
@@ -529,7 +485,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  badgeTxt: { color: C.white, fontSize: 9, fontWeight: '900' },
+  badgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
   brandMark: {
     width: 34,
     height: 34,
@@ -540,8 +496,8 @@ const styles = StyleSheet.create({
   },
   brandMarkTxt: {
     color: C.white,
-    fontFamily: 'Poppins, system-ui, sans-serif',
-    fontWeight: '900',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontWeight: '800',
     fontSize: 11,
   },
   searchWrap: {
@@ -559,7 +515,7 @@ const styles = StyleSheet.create({
   searchWrapFocused: { borderColor: C.red, backgroundColor: C.white },
   searchInput: {
     flex: 1,
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     color: C.dark,
     outlineStyle: 'none',
@@ -592,13 +548,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   suggestionTitle: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     fontWeight: '600',
     color: C.dark,
   },
   suggestionPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 11,
     color: C.grey,
     marginTop: 1,
@@ -616,7 +572,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   featuredLabel: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10,
     fontWeight: '700',
     color: C.red,
@@ -654,13 +610,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   featuredStoreTxt: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10,
     fontWeight: '700',
     color: C.white,
   },
   featuredTitle: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 16,
     fontWeight: '700',
     color: C.white,
@@ -673,13 +629,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featuredPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '800',
     color: C.white,
   },
   featuredOrig: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
     textDecorationLine: 'line-through',
@@ -692,7 +648,7 @@ const styles = StyleSheet.create({
     borderRadius: R.full,
   },
   featuredDiscountTxt: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 11,
     fontWeight: '800',
     color: C.white,
@@ -709,70 +665,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Flash deals
-  flashSection: { paddingTop: 16 },
-  flashScroll: { paddingHorizontal: 12, paddingBottom: 4, gap: 10 },
-  flashCard: {
-    width: 140,
-    backgroundColor: C.white,
-    borderRadius: R.lg,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  flashImageWrap: {
-    width: '100%',
-    height: 110,
-    backgroundColor: C.lightGrey,
-    position: 'relative',
-  },
-  flashImage: { width: '100%', height: '100%' },
-  flashFlag: {
-    position: 'absolute',
-    top: 8,
-    left: 0,
-    backgroundColor: C.red,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderTopRightRadius: 5,
-    borderBottomRightRadius: 5,
-  },
-  flashFlagTxt: {
-    color: C.white,
-    fontFamily: 'Poppins, system-ui, sans-serif',
-    fontWeight: '800',
-    fontSize: 10,
-  },
-  flashHeart: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  flashInfo: { padding: 8 },
-  flashTitle: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.dark,
-    lineHeight: 16,
-    marginBottom: 4,
-  },
-  flashPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
-    fontSize: 13,
-    fontWeight: '800',
-    color: C.dark,
-  },
-
   // Section headers
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -783,14 +675,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sectionTitle: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 15,
     fontWeight: '700',
     color: C.dark,
     flex: 1,
   },
   sectionCount: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 12,
     color: C.grey,
     fontWeight: '500',
@@ -825,7 +717,7 @@ const styles = StyleSheet.create({
   },
   tabCenterActive: { backgroundColor: C.red },
   tabLabel: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10,
     color: C.grey,
     fontWeight: '500',
@@ -844,5 +736,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 3,
   },
-  tabBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '900' },
+  tabBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
 });

@@ -3,7 +3,7 @@ import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
   TextInput, ScrollView, Animated,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { C, R } from '../data/theme';
 
 const CATS = [
@@ -74,7 +74,7 @@ export default function FilterPanel({
           <View style={styles.header}>
             <Text style={styles.title}>Filters</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <MaterialIcons name="close" size={18} color={C.grey} />
+              <Icon name="close" size={18} color={C.grey} />
             </TouchableOpacity>
           </View>
 
@@ -88,7 +88,7 @@ export default function FilterPanel({
                   style={[styles.chip, activeCat === key && styles.chipOn]}
                   onPress={() => setActiveCat(key)}
                 >
-                  <MaterialIcons
+                  <Icon
                     name={icon}
                     size={14}
                     color={activeCat === key ? C.red : C.grey}
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
   },
   title: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 18,
     fontWeight: '700',
     color: C.dark,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionLabel: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10,
     fontWeight: '700',
     color: C.grey,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     borderColor: C.red,
   },
   chipTxt: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     fontWeight: '600',
     color: C.grey,
@@ -261,14 +261,14 @@ const styles = StyleSheet.create({
     height: 44,
   },
   pricePrefix: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 14,
     color: C.grey,
     marginRight: 4,
   },
   priceField: {
     flex: 1,
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 14,
     color: C.dark,
     outline: 'none',
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resetTxt: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 14,
     fontWeight: '600',
     color: C.grey,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   applyTxt: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 14,
     fontWeight: '700',
     color: C.white,

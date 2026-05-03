@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { C, R, S } from '../data/theme';
 
 export default function DealCard({ deal, onPress, onFavorite, isFavorited, t }) {
@@ -16,7 +16,7 @@ export default function DealCard({ deal, onPress, onFavorite, isFavorited, t }) 
         </View>
 
         <TouchableOpacity style={styles.heartBtn} onPress={onFavorite} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-          <MaterialIcons
+          <Icon
             name={isFavorited ? 'favorite' : 'favorite-border'}
             size={16}
             color={isFavorited ? C.red : C.grey}
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   },
   flagText: {
     color: C.white,
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontWeight: '800',
     fontSize: 11,
   },
@@ -106,13 +106,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dealPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 15,
     fontWeight: '800',
     color: C.dark,
   },
   origPrice: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 11,
     color: C.grey,
     textDecorationLine: 'line-through',
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   storeText: {
-    fontFamily: 'Poppins, system-ui, sans-serif',
+    fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10,
     fontWeight: '700',
   },

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { C, R } from '../data/theme';
 
 const LEVELS = [
@@ -43,7 +43,7 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
       {/* ── Reward 1: Points & Level ──────────────────────────────────── */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <MaterialIcons name="stars" size={28} color={C.warning} style={{ marginTop: 2 }} />
+          <Icon name="stars" size={28} color={C.warning} style={{ marginTop: 2 }} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>Punten & Level</Text>
             <Text style={styles.cardSub}>Verdien punten door deals te bekijken en op te slaan</Text>
@@ -79,7 +79,7 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
       {/* ── Reward 2: Daily Streak ────────────────────────────────────── */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <MaterialIcons name="local-fire-department" size={28} color={C.red} style={{ marginTop: 2 }} />
+          <Icon name="local-fire-department" size={28} color={C.red} style={{ marginTop: 2 }} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>Dagelijkse Streak</Text>
             <Text style={styles.cardSub}>Kom elke dag terug en bouw je streak op</Text>
@@ -95,7 +95,7 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
           {[1, 2, 3, 4, 5, 6, 7].map(d => (
             <View key={d} style={[styles.streakDot, d <= streak && styles.streakDotActive]}>
               {d <= streak
-                ? <MaterialIcons name="local-fire-department" size={16} color={C.white} />
+                ? <Icon name="local-fire-department" size={16} color={C.white} />
                 : <Text style={styles.streakDotTxt}>{d}</Text>}
             </View>
           ))}
@@ -115,7 +115,7 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
       {/* ── Reward 3: Badges ─────────────────────────────────────────── */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <MaterialIcons name="emoji-events" size={28} color={C.warning} style={{ marginTop: 2 }} />
+          <Icon name="emoji-events" size={28} color={C.warning} style={{ marginTop: 2 }} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>Badges</Text>
             <Text style={styles.cardSub}>Unlock achievements door de app te gebruiken</Text>
@@ -127,12 +127,12 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
             const earned = badge.req(stats);
             return (
               <View key={badge.id} style={[styles.badgeItem, !earned && styles.badgeLocked]}>
-                <MaterialIcons name={badge.icon} size={32} color={earned ? C.red : C.grey} />
+                <Icon name={badge.icon} size={32} color={earned ? C.red : C.grey} />
                 <Text style={[styles.badgeName, !earned && { color: C.grey }]}>{badge.name}</Text>
                 <Text style={styles.badgeDesc}>{badge.desc}</Text>
                 {earned && (
                   <View style={styles.badgeEarnedRow}>
-                    <MaterialIcons name="check-circle" size={12} color={C.success} />
+                    <Icon name="check-circle" size={12} color={C.success} />
                     <Text style={styles.badgeEarned}>Verdiend</Text>
                   </View>
                 )}
@@ -150,7 +150,7 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
 function EarnRow({ icon, text, pts }) {
   return (
     <View style={styles.earnRow}>
-      <MaterialIcons name={icon} size={18} color={C.grey} style={{ width: 24 }} />
+      <Icon name={icon} size={18} color={C.grey} style={{ width: 24 }} />
       <Text style={styles.earnText}>{text}</Text>
       <Text style={styles.earnPts}>{pts}</Text>
     </View>
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
-  cardTitle: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 16, fontWeight: '700', color: C.dark },
-  cardSub: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, color: C.grey, marginTop: 2 },
+  cardTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 16, fontWeight: '700', color: C.dark },
+  cardSub: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey, marginTop: 2 },
 
   // Points card
   levelBadge: {
@@ -192,31 +192,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  levelAbbr: { color: C.white, fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, fontWeight: '900' },
-  levelName: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 18, fontWeight: '800' },
-  levelPoints: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, color: C.grey, marginTop: 2 },
+  levelAbbr: { color: C.white, fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '800' },
+  levelName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 18, fontWeight: '800' },
+  levelPoints: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey, marginTop: 2 },
   progressWrap: { marginBottom: 16 },
   progressBar: { height: 8, backgroundColor: C.lightGrey, borderRadius: R.full, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: R.full },
-  progressLabel: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 6, textAlign: 'center' },
+  progressLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 6, textAlign: 'center' },
   earnGrid: { gap: 10 },
   earnRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  earnText: { flex: 1, fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, color: C.dark },
-  earnPts: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, fontWeight: '700', color: C.success },
+  earnText: { flex: 1, fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, color: C.dark },
+  earnPts: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '700', color: C.success },
 
   // Streak card
   streakCenter: { alignItems: 'center', marginVertical: 8 },
-  streakNumber: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 56, fontWeight: '900', color: C.dark, lineHeight: 64 },
-  streakLabel: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 16, fontWeight: '600', color: C.grey },
+  streakNumber: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 56, fontWeight: '800', color: C.dark, lineHeight: 64 },
+  streakLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 16, fontWeight: '600', color: C.grey },
   streakDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginVertical: 14 },
   streakDot: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: C.lightGrey, justifyContent: 'center', alignItems: 'center',
   },
   streakDotActive: { backgroundColor: C.red },
-  streakDotTxt: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, color: C.grey, fontWeight: '700' },
+  streakDotTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey, fontWeight: '700' },
   streakTip: { backgroundColor: C.lightGrey, borderRadius: R.md, padding: 12 },
-  streakTipTxt: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, color: C.dark, textAlign: 'center' },
+  streakTipTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, color: C.dark, textAlign: 'center' },
 
   // Badges
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   badgeLocked: { opacity: 0.4 },
-  badgeName: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, fontWeight: '700', color: C.dark, textAlign: 'center' },
-  badgeDesc: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 10, color: C.grey, textAlign: 'center' },
+  badgeName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, fontWeight: '700', color: C.dark, textAlign: 'center' },
+  badgeDesc: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey, textAlign: 'center' },
   badgeEarnedRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
-  badgeEarned: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.success },
+  badgeEarned: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.success },
 });

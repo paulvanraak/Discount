@@ -15,9 +15,9 @@ export const C = {
 export const R = { sm: 8, md: 12, lg: 16, xl: 24, full: 999 };
 
 export const S = {
-  h1: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 24, fontWeight: '800', color: '#1E2638' },
-  h2: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 18, fontWeight: '700', color: '#1E2638' },
-  h3: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 15, fontWeight: '600', color: '#1E2638' },
-  body: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, fontWeight: '400', color: '#647488' },
-  label: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 11, fontWeight: '700', color: '#647488' },
+  h1: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 24, fontWeight: '800', color: '#1E2638' },
+  h2: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 18, fontWeight: '700', color: '#1E2638' },
+  h3: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '600', color: '#1E2638' },
+  body: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '400', color: '#647488' },
+  label: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, fontWeight: '700', color: '#647488' },
 };
