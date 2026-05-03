@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FF8C00"
+      "backgroundColor": "#FF4040"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,13 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/icon.png",
+      "name": "Donnie Discount",
+      "shortName": "Donnie",
+      "description": "Extreme kortingen. Elke dag.",
+      "themeColor": "#FF4040",
+      "backgroundColor": "#FF4040"
     },
     "plugins": [],
     "assetBundlePatterns": [

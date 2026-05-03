@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   RefreshControl, TouchableOpacity, TextInput,
-  ActivityIndicator, Platform, Image,
+  Platform, Image, Animated,
 } from 'react-native';
 import Icon from '../components/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,7 @@ import DealCard from '../components/DealCard';
 import DealModal from '../components/DealModal';
 import FilterPanel from '../components/FilterPanel';
 import MenuDrawer from '../components/MenuDrawer';
+import SkeletonCard from '../components/SkeletonCard';
 import FavoritesScreen from './FavoritesScreen';
 import RewardsScreen from './RewardsScreen';
 import { fetchDeals } from '../services/api';
@@ -48,12 +49,32 @@ export default function HomeScreen() {
   const [streak, setStreak] = useState(1);
   const [clicks, setClicks] = useState(0);
   const [favCount, setFavCount] = useState(0);
+  const [streakToast, setStreakToast] = useState(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    loadDeals(activeCat, activeDisc, minPrice, maxPrice);
+    loadPersistedFilters();
     loadFavorites();
     initRewards();
   }, []);
+
+  const loadPersistedFilters = async () => {
+    try {
+      const [[, cat], [, disc], [, min], [, max]] = await AsyncStorage.multiGet(
+        ['dd_filter_cat', 'dd_filter_disc', 'dd_filter_min', 'dd_filter_max']
+      );
+      const resolvedCat = cat || 'all';
+      const resolvedMin = min || '';
+      const resolvedMax = max || '';
+      if (cat) setActiveCat(resolvedCat);
+      if (disc) setActiveDisc(disc);
+      if (min) setMinPrice(resolvedMin);
+      if (max) setMaxPrice(resolvedMax);
+      loadDeals(resolvedCat, disc || null, resolvedMin, resolvedMax);
+    } catch {
+      loadDeals('all', null, '', '');
+    }
+  };
 
   const loadDeals = useCallback(async (cat, disc, min, max, search = '') => {
     try {
@@ -76,6 +97,12 @@ export default function HomeScreen() {
   const applyFilters = useCallback(() => {
     setLoading(true);
     loadDeals(activeCat, activeDisc, minPrice, maxPrice, query);
+    AsyncStorage.multiSet([
+      ['dd_filter_cat', activeCat],
+      ['dd_filter_disc', activeDisc || ''],
+      ['dd_filter_min', minPrice],
+      ['dd_filter_max', maxPrice],
+    ]).catch(() => {});
   }, [activeCat, activeDisc, minPrice, maxPrice, query, loadDeals]);
 
   const onRefresh = useCallback(async () => {
@@ -159,6 +186,19 @@ export default function HomeScreen() {
         const newP = p + 2;
         setPoints(newP);
         await AsyncStorage.setItem('dd_points', String(newP));
+        // Show streak toast when user comes back a consecutive day
+        if (s > 1) {
+          setStreakToast(s);
+          Animated.sequence([
+            Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+            Animated.delay(3200),
+            Animated.timing(toastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+          ]).start(() => setStreakToast(null));
+          // Request notification permission so future streak reminders can reach them
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+          }
+        }
       } else {
         setPoints(p);
       }
@@ -250,12 +290,30 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* ── Streak toast ──────────────────────────────────────────────── */}
+      {streakToast && (
+        <Animated.View style={[styles.streakToast, { opacity: toastOpacity }]}>
+          <Text style={styles.streakToastIcon}>🔥</Text>
+          <View>
+            <Text style={styles.streakToastTitle}>{streakToast} dagen op rij!</Text>
+            <Text style={styles.streakToastSub}>Kom morgen terug om je streak te bewaren.</Text>
+          </View>
+        </Animated.View>
+      )}
+
       {/* ── Content area ──────────────────────────────────────────────── */}
       <View style={{ flex: 1 }}>
         {activeTab === 'home' && (
           <>
             {loading && deals.length === 0 ? (
-              <ActivityIndicator size="large" color={C.red} style={{ marginTop: 60 }} />
+              <FlatList
+                data={[1, 2, 3, 4, 5, 6]}
+                keyExtractor={item => String(item)}
+                numColumns={2}
+                contentContainerStyle={styles.list}
+                renderItem={() => <SkeletonCard />}
+                scrollEnabled={false}
+              />
             ) : (
               <FlatList
                 data={gridDeals}
@@ -297,6 +355,7 @@ export default function HomeScreen() {
             favorites={favorites}
             onDealPress={handleDealPress}
             onFavoriteToggle={toggleFavorite}
+            onBrowse={() => setActiveTab('home')}
             t={t}
           />
         )}
@@ -737,4 +796,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   tabBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
+
+  // Streak toast
+  streakToast: {
+    position: 'absolute',
+    top: 70,
+    left: 12,
+    right: 12,
+    zIndex: 100,
+    backgroundColor: C.dark,
+    borderRadius: R.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  streakToastIcon: { fontSize: 26 },
+  streakToastTitle: {
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontSize: 14,
+    fontWeight: '800',
+    color: C.white,
+  },
+  streakToastSub: {
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 1,
+  },
 });

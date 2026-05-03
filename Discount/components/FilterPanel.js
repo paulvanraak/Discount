@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, Animated,
+  ScrollView, Animated, Platform,
 } from 'react-native';
 import Icon from './Icon';
 import { C, R } from '../data/theme';
@@ -15,7 +15,51 @@ const CATS = [
 
 const DISCOUNTS = ['40%+', '50%+', '60%+', '70%+'];
 
+const PRICE_MIN = 0;
+const PRICE_MAX = 500;
+const PRICE_STEP = 10;
 const PANEL_WIDTH = 300;
+
+function PriceSlider({ label, value, min, max, step, onChange }) {
+  if (Platform.OS !== 'web') return null;
+  return (
+    <View style={sliderStyles.wrap}>
+      <View style={sliderStyles.labelRow}>
+        <Text style={sliderStyles.label}>{label}</Text>
+        <Text style={sliderStyles.value}>€{value}</Text>
+      </View>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        style={{
+          width: '100%',
+          accentColor: C.red,
+          cursor: 'pointer',
+          outline: 'none',
+          height: 4,
+        }}
+      />
+      <View style={sliderStyles.tickRow}>
+        <Text style={sliderStyles.tick}>€{min}</Text>
+        <Text style={sliderStyles.tick}>€{Math.round((min + max) / 2)}</Text>
+        <Text style={sliderStyles.tick}>€{max}</Text>
+      </View>
+    </View>
+  );
+}
+
+const sliderStyles = {
+  wrap: { marginHorizontal: 20, marginBottom: 16 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  label: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, fontWeight: '600', color: C.grey },
+  value: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '800', color: C.red },
+  tickRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  tick: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey },
+};
 
 export default function FilterPanel({
   visible, onClose,
@@ -27,6 +71,10 @@ export default function FilterPanel({
 }) {
   const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const [panelMounted, setPanelMounted] = useState(false);
+
+  // Parse string values to numbers for sliders
+  const minVal = parseInt(minPrice) || PRICE_MIN;
+  const maxVal = parseInt(maxPrice) || PRICE_MAX;
 
   useEffect(() => {
     if (visible) {
@@ -65,14 +113,33 @@ export default function FilterPanel({
     onClose();
   };
 
+  const handleMinChange = (val) => {
+    // Keep min at least 10 below max
+    const clamped = Math.min(val, maxVal - PRICE_STEP);
+    setMinPrice(clamped === PRICE_MIN ? '' : String(clamped));
+  };
+
+  const handleMaxChange = (val) => {
+    const clamped = Math.max(val, minVal + PRICE_STEP);
+    setMaxPrice(clamped === PRICE_MAX ? '' : String(clamped));
+  };
+
+  const activeCount = [activeCat !== 'all', activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
+
   return (
     <Modal visible={panelMounted} transparent animationType="none" onRequestClose={handleClose}>
       <View style={styles.overlay}>
-        {/* Panel slides in from left */}
         <Animated.View style={[styles.panel, { transform: [{ translateX: slideAnim }] }]}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Filters</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.title}>Filters</Text>
+              {activeCount > 0 && (
+                <View style={styles.countBadge}>
+                  <Text style={styles.countTxt}>{activeCount}</Text>
+                </View>
+              )}
+            </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
               <Icon name="close" size={18} color={C.grey} />
             </TouchableOpacity>
@@ -88,15 +155,8 @@ export default function FilterPanel({
                   style={[styles.chip, activeCat === key && styles.chipOn]}
                   onPress={() => setActiveCat(key)}
                 >
-                  <Icon
-                    name={icon}
-                    size={14}
-                    color={activeCat === key ? C.red : C.grey}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={[styles.chipTxt, activeCat === key && styles.chipTxtOn]}>
-                    {label}
-                  </Text>
+                  <Icon name={icon} size={14} color={activeCat === key ? C.red : C.grey} style={{ marginRight: 4 }} />
+                  <Text style={[styles.chipTxt, activeCat === key && styles.chipTxtOn]}>{label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -115,31 +175,33 @@ export default function FilterPanel({
               ))}
             </View>
 
-            {/* Price */}
+            {/* Price range sliders */}
             <Text style={styles.sectionLabel}>PRIJSRANGE</Text>
-            <View style={styles.priceRow}>
-              <View style={styles.priceInput}>
-                <Text style={styles.pricePrefix}>€</Text>
-                <TextInput
-                  style={styles.priceField}
-                  value={minPrice}
-                  onChangeText={setMinPrice}
-                  placeholder="Min"
-                  placeholderTextColor={C.grey}
-                  keyboardType="numeric"
-                />
+            <PriceSlider
+              label="Minimumprijs"
+              value={minVal}
+              min={PRICE_MIN}
+              max={PRICE_MAX - PRICE_STEP}
+              step={PRICE_STEP}
+              onChange={handleMinChange}
+            />
+            <PriceSlider
+              label="Maximumprijs"
+              value={maxVal}
+              min={PRICE_MIN + PRICE_STEP}
+              max={PRICE_MAX}
+              step={PRICE_STEP}
+              onChange={handleMaxChange}
+            />
+            <View style={styles.priceDisplay}>
+              <View style={styles.priceTag}>
+                <Text style={styles.priceTagLabel}>Van</Text>
+                <Text style={styles.priceTagVal}>€{minVal}</Text>
               </View>
-              <Text style={styles.priceDash}>—</Text>
-              <View style={styles.priceInput}>
-                <Text style={styles.pricePrefix}>€</Text>
-                <TextInput
-                  style={styles.priceField}
-                  value={maxPrice}
-                  onChangeText={setMaxPrice}
-                  placeholder="Max"
-                  placeholderTextColor={C.grey}
-                  keyboardType="numeric"
-                />
+              <View style={styles.priceDivider} />
+              <View style={styles.priceTag}>
+                <Text style={styles.priceTagLabel}>Tot</Text>
+                <Text style={styles.priceTagVal}>€{maxVal === PRICE_MAX ? '500+' : maxVal}</Text>
               </View>
             </View>
           </ScrollView>
@@ -150,12 +212,11 @@ export default function FilterPanel({
               <Text style={styles.resetTxt}>Reset</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
-              <Text style={styles.applyTxt}>Toepassen</Text>
+              <Text style={styles.applyTxt}>Toepassen{activeCount > 0 ? ` (${activeCount})` : ''}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
 
-        {/* Backdrop on the right */}
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
       </View>
     </Modal>
@@ -163,10 +224,7 @@ export default function FilterPanel({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    flexDirection: 'row',
-  },
+  overlay: { flex: 1, flexDirection: 'row' },
   panel: {
     width: PANEL_WIDTH,
     backgroundColor: C.white,
@@ -176,10 +234,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 10,
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -196,6 +251,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: C.dark,
   },
+  countBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: C.red,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countTxt: { color: C.white, fontSize: 10, fontWeight: '800' },
   closeBtn: {
     width: 30,
     height: 30,
@@ -230,53 +294,39 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  chipOn: {
-    backgroundColor: C.red + '18',
-    borderColor: C.red,
-  },
+  chipOn: { backgroundColor: C.red + '18', borderColor: C.red },
   chipTxt: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 13,
     fontWeight: '600',
     color: C.grey,
   },
-  chipTxtOn: {
-    color: C.red,
-  },
-  priceRow: {
+  chipTxtOn: { color: C.red },
+  priceDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  priceInput: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: C.border,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: C.lightGrey,
     borderRadius: R.md,
-    paddingHorizontal: 10,
-    height: 44,
+    overflow: 'hidden',
   },
-  pricePrefix: {
+  priceTag: { flex: 1, alignItems: 'center', paddingVertical: 10 },
+  priceTagLabel: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 14,
+    fontSize: 10,
+    fontWeight: '600',
     color: C.grey,
-    marginRight: 4,
+    letterSpacing: 0.5,
   },
-  priceField: {
-    flex: 1,
+  priceTagVal: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '800',
     color: C.dark,
-    outline: 'none',
+    marginTop: 2,
   },
-  priceDash: {
-    color: C.grey,
-    fontSize: 18,
-  },
+  priceDivider: { width: 1, height: '70%', backgroundColor: C.border },
   footer: {
     flexDirection: 'row',
     gap: 10,

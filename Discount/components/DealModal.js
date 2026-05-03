@@ -1,17 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, Image, StyleSheet, TouchableOpacity,
-  ScrollView, Linking, Share, Platform,
+  ScrollView, Linking, Share, Animated,
 } from 'react-native';
 import Icon from './Icon';
 import { C, R } from '../data/theme';
 
 export default function DealModal({ deal, visible, onClose, isFavorited, onFavorite, t }) {
-  if (!deal) return null;
+  const [mounted, setMounted] = useState(false);
+  const [currentDeal, setCurrentDeal] = useState(deal);
+  const slideAnim = useRef(new Animated.Value(700)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const store = t?.affiliates?.[deal.affiliateStore] ?? { name: deal.affiliateStore, color: C.navy, textColor: C.white, url: '' };
-  const affiliateUrl = store.url + '/' + deal.id;
-  const savings = (deal.originalPrice - deal.discountedPrice).toFixed(2);
+  useEffect(() => {
+    if (visible && deal) {
+      setCurrentDeal(deal);
+      setMounted(true);
+      Animated.parallel([
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 700, duration: 240, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+      ]).start(() => {
+        slideAnim.setValue(700);
+        fadeAnim.setValue(0);
+        setMounted(false);
+      });
+    }
+  }, [visible, deal]);
+
+  if (!currentDeal) return null;
+
+  const store = t?.affiliates?.[currentDeal.affiliateStore] ?? { name: currentDeal.affiliateStore, color: C.navy, textColor: C.white, url: '' };
+  const affiliateUrl = store.url + '/' + currentDeal.id;
+  const savings = (currentDeal.originalPrice - currentDeal.discountedPrice).toFixed(2);
 
   const handleViewDeal = () => {
     Linking.openURL(affiliateUrl).catch(() => {});
@@ -20,71 +45,77 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
 
   const handleShare = async () => {
     try {
-      const msg = `${deal.title} — €${deal.discountedPrice.toFixed(2)} (was €${deal.originalPrice.toFixed(2)}) – ${deal.discountPercentage}% off! ${affiliateUrl}`;
+      const msg = `${currentDeal.title} — €${currentDeal.discountedPrice.toFixed(2)} (was €${currentDeal.originalPrice.toFixed(2)}) – ${currentDeal.discountPercentage}% off! ${affiliateUrl}`;
       await Share.share({ message: msg });
     } catch {}
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose}>
+      <View style={styles.container}>
+        {/* Backdrop fades in independently — no sliding rectangle */}
+        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        </Animated.View>
 
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+        {/* Sheet slides up independently */}
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.handle} />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.imageWrap}>
-            <Image source={{ uri: deal.image }} style={styles.image} resizeMode="cover" />
-            <View style={styles.flag}>
-              <Text style={styles.flagText}>-{deal.discountPercentage}%</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.imageWrap}>
+              <Image source={{ uri: currentDeal.image }} style={styles.image} resizeMode="cover" />
+              <View style={styles.flag}>
+                <Text style={styles.flagText}>-{currentDeal.discountPercentage}%</Text>
+              </View>
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                <Icon name="close" size={18} color={C.dark} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Icon name="close" size={18} color={C.dark} />
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.body}>
-            <View style={[styles.storeBadge, { backgroundColor: store.color + '18' }]}>
-              <Text style={[styles.storeText, { color: store.color }]}>{store.name}</Text>
-            </View>
+            <View style={styles.body}>
+              <View style={[styles.storeBadge, { backgroundColor: store.color + '18' }]}>
+                <Text style={[styles.storeText, { color: store.color }]}>{store.name}</Text>
+              </View>
 
-            <Text style={styles.title}>{deal.title}</Text>
+              <Text style={styles.title}>{currentDeal.title}</Text>
 
-            <View style={styles.priceBlock}>
-              <Text style={styles.dealPrice}>€{deal.discountedPrice.toFixed(2)}</Text>
-              <View style={styles.priceRight}>
-                <Text style={styles.origPrice}>€{deal.originalPrice.toFixed(2)}</Text>
-                <Text style={styles.savings}>Je bespaart €{savings}</Text>
+              <View style={styles.priceBlock}>
+                <Text style={styles.dealPrice}>€{currentDeal.discountedPrice.toFixed(2)}</Text>
+                <View style={styles.priceRight}>
+                  <Text style={styles.origPrice}>€{currentDeal.originalPrice.toFixed(2)}</Text>
+                  <Text style={styles.savings}>Je bespaart €{savings}</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <InfoRow icon="local-offer" label="Korting" value={`${currentDeal.discountPercentage}% korting`} />
+              <InfoRow icon="store" label="Winkel" value={store.name} />
+              {currentDeal.fomoKey ? <InfoRow icon="bolt" label="Status" value={getFomoText(currentDeal.fomoKey)} /> : null}
+
+              <TouchableOpacity style={styles.ctaBtn} onPress={handleViewDeal}>
+                <Text style={styles.ctaText}>Bekijk Deal bij {store.name}</Text>
+                <Icon name="arrow-forward" size={18} color={C.white} style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+
+              <View style={styles.actions}>
+                <TouchableOpacity style={styles.actionBtn} onPress={onFavorite}>
+                  <Icon
+                    name={isFavorited ? 'favorite' : 'favorite-border'}
+                    size={24}
+                    color={isFavorited ? C.red : C.grey}
+                  />
+                  <Text style={styles.actionLabel}>{isFavorited ? 'Opgeslagen' : 'Opslaan'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
+                  <Icon name="share" size={24} color={C.grey} />
+                  <Text style={styles.actionLabel}>Delen</Text>
+                </TouchableOpacity>
               </View>
             </View>
-
-            <View style={styles.divider} />
-
-            <InfoRow icon="local-offer" label="Korting" value={`${deal.discountPercentage}% korting`} />
-            <InfoRow icon="store" label="Winkel" value={store.name} />
-            {deal.fomoKey ? <InfoRow icon="bolt" label="Status" value={getFomoText(deal.fomoKey)} /> : null}
-
-            <TouchableOpacity style={styles.ctaBtn} onPress={handleViewDeal}>
-              <Text style={styles.ctaText}>Bekijk Deal bij {store.name}</Text>
-              <Icon name="arrow-forward" size={18} color={C.white} style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.actionBtn} onPress={onFavorite}>
-                <Icon
-                  name={isFavorited ? 'favorite' : 'favorite-border'}
-                  size={24}
-                  color={isFavorited ? C.red : C.grey}
-                />
-                <Text style={styles.actionLabel}>{isFavorited ? 'Opgeslagen' : 'Opslaan'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
-                <Icon name="share" size={24} color={C.grey} />
-                <Text style={styles.actionLabel}>Delen</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -117,9 +148,13 @@ function getFomoText(key) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.52)',
   },
   sheet: {
     backgroundColor: C.white,
