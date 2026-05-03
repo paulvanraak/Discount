@@ -14,7 +14,6 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Platform } from 'react-native';
 import * as StoreReview from 'expo-store-review';
 import DealCard from '../components/DealCard';
 import { useLanguage } from '../context/LanguageContext';
