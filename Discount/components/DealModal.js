@@ -5,8 +5,12 @@ import {
 } from 'react-native';
 import Icon from './Icon';
 import { C, R } from '../data/theme';
+import { buildAffiliateUrl } from '../services/affiliate';
+import { trackPurchaseIntent } from '../services/analytics';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function DealModal({ deal, visible, onClose, isFavorited, onFavorite, t }) {
+  const { region } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [currentDeal, setCurrentDeal] = useState(deal);
   const slideAnim = useRef(new Animated.Value(700)).current;
@@ -35,10 +39,11 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
   if (!currentDeal) return null;
 
   const store = t?.affiliates?.[currentDeal.affiliateStore] ?? { name: currentDeal.affiliateStore, color: C.navy, textColor: C.white, url: '' };
-  const affiliateUrl = store.url + '/' + currentDeal.id;
+  const affiliateUrl = buildAffiliateUrl(currentDeal, store, region);
   const savings = (currentDeal.originalPrice - currentDeal.discountedPrice).toFixed(2);
 
   const handleViewDeal = () => {
+    trackPurchaseIntent(currentDeal);
     Linking.openURL(affiliateUrl).catch(() => {});
     onClose();
   };

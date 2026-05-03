@@ -11,17 +11,19 @@ import DealModal from '../components/DealModal';
 import FilterPanel from '../components/FilterPanel';
 import MenuDrawer from '../components/MenuDrawer';
 import SkeletonCard from '../components/SkeletonCard';
+import PWAInstallBanner from '../components/PWAInstallBanner';
 import FavoritesScreen from './FavoritesScreen';
 import RewardsScreen from './RewardsScreen';
-import { fetchDeals } from '../services/api';
+import { fetchDeals, recordClick } from '../services/api';
 import { mockDeals } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
+import { trackDealClick, trackAddToWishlist, trackPurchaseIntent } from '../services/analytics';
 import { C, R } from '../data/theme';
 
 const PAGE_SIZE = 8;
 
 export default function HomeScreen() {
-  const { t } = useLanguage();
+  const { t, region } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('home');
   const [allDeals, setAllDeals] = useState([]);
@@ -79,7 +81,7 @@ export default function HomeScreen() {
   const loadDeals = useCallback(async (cat, disc, min, max, search = '') => {
     try {
       const minDiscount = disc ? parseInt(disc, 10) : undefined;
-      let result = await fetchDeals({ category: cat, minDiscount, minPrice: min || undefined, maxPrice: max || undefined });
+      let result = await fetchDeals({ category: cat, minDiscount, minPrice: min || undefined, maxPrice: max || undefined, region });
       if (search.trim()) {
         const q = search.toLowerCase();
         result = result.filter(d => d.title.toLowerCase().includes(q));
@@ -224,6 +226,14 @@ export default function HomeScreen() {
   const handleDealPress = (deal) => {
     setSelectedDeal(deal);
     addClick();
+    trackDealClick(deal);
+    recordClick(deal.id, region);
+  };
+
+  const handleFavoriteWithTracking = async (dealId) => {
+    const deal = allDeals.find(d => d.id === dealId);
+    await toggleFavorite(dealId);
+    if (deal && !favorites.has(dealId)) trackAddToWishlist(deal);
   };
 
   const activeFilterCount = [activeCat !== 'all', activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
@@ -324,7 +334,7 @@ export default function HomeScreen() {
                   <DealCard
                     deal={item}
                     onPress={() => handleDealPress(item)}
-                    onFavorite={() => toggleFavorite(item.id)}
+                    onFavorite={() => handleFavoriteWithTracking(item.id)}
                     isFavorited={favorites.has(item.id)}
                     t={t}
                   />
@@ -340,7 +350,7 @@ export default function HomeScreen() {
                     dealCount={allDeals.length}
                     favorites={favorites}
                     onDealPress={handleDealPress}
-                    onFavorite={toggleFavorite}
+                    onFavorite={handleFavoriteWithTracking}
                     t={t}
                   />
                 }
@@ -354,7 +364,7 @@ export default function HomeScreen() {
             allDeals={allDeals.length ? allDeals : mockDeals}
             favorites={favorites}
             onDealPress={handleDealPress}
-            onFavoriteToggle={toggleFavorite}
+            onFavoriteToggle={handleFavoriteWithTracking}
             onBrowse={() => setActiveTab('home')}
             t={t}
           />
@@ -417,6 +427,8 @@ export default function HomeScreen() {
       />
 
       <MenuDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
+
+      <PWAInstallBanner />
     </SafeAreaView>
   );
 }
