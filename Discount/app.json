@@ -24,8 +24,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "single",
-      "baseUrl": "/Discount"
+      "output": "single"
     },
     "plugins": [],
     "assetBundlePatterns": [
