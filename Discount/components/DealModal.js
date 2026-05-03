@@ -3,7 +3,8 @@ import {
   Modal, View, Text, Image, StyleSheet, TouchableOpacity,
   ScrollView, Linking, Share, Platform,
 } from 'react-native';
-import { C, R, S } from '../data/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { C, R } from '../data/theme';
 
 export default function DealModal({ deal, visible, onClose, isFavorited, onFavorite, t }) {
   if (!deal) return null;
@@ -29,31 +30,26 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
 
       <View style={styles.sheet}>
-        {/* Handle */}
         <View style={styles.handle} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Image */}
           <View style={styles.imageWrap}>
             <Image source={{ uri: deal.image }} style={styles.image} resizeMode="cover" />
             <View style={styles.flag}>
               <Text style={styles.flagText}>-{deal.discountPercentage}%</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <MaterialIcons name="close" size={18} color={C.dark} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.body}>
-            {/* Store badge */}
             <View style={[styles.storeBadge, { backgroundColor: store.color + '18' }]}>
               <Text style={[styles.storeText, { color: store.color }]}>{store.name}</Text>
             </View>
 
-            {/* Title */}
             <Text style={styles.title}>{deal.title}</Text>
 
-            {/* Price block */}
             <View style={styles.priceBlock}>
               <Text style={styles.dealPrice}>€{deal.discountedPrice.toFixed(2)}</Text>
               <View style={styles.priceRight}>
@@ -62,27 +58,28 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
               </View>
             </View>
 
-            {/* Divider */}
             <View style={styles.divider} />
 
-            {/* Info rows */}
-            <InfoRow icon="🏷️" label="Korting" value={`${deal.discountPercentage}% korting`} />
-            <InfoRow icon="🏪" label="Winkel" value={store.name} />
-            {deal.fomoKey ? <InfoRow icon="⚡" label="Status" value={getFomoText(deal.fomoKey)} /> : null}
+            <InfoRow icon="local-offer" label="Korting" value={`${deal.discountPercentage}% korting`} />
+            <InfoRow icon="store" label="Winkel" value={store.name} />
+            {deal.fomoKey ? <InfoRow icon="bolt" label="Status" value={getFomoText(deal.fomoKey)} /> : null}
 
-            {/* CTA */}
             <TouchableOpacity style={styles.ctaBtn} onPress={handleViewDeal}>
-              <Text style={styles.ctaText}>Bekijk Deal bij {store.name} →</Text>
+              <Text style={styles.ctaText}>Bekijk Deal bij {store.name}</Text>
+              <MaterialIcons name="arrow-forward" size={18} color={C.white} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
 
-            {/* Secondary actions */}
             <View style={styles.actions}>
               <TouchableOpacity style={styles.actionBtn} onPress={onFavorite}>
-                <Text style={styles.actionIcon}>{isFavorited ? '❤️' : '🤍'}</Text>
+                <MaterialIcons
+                  name={isFavorited ? 'favorite' : 'favorite-border'}
+                  size={24}
+                  color={isFavorited ? C.red : C.grey}
+                />
                 <Text style={styles.actionLabel}>{isFavorited ? 'Opgeslagen' : 'Opslaan'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
-                <Text style={styles.actionIcon}>📤</Text>
+                <MaterialIcons name="share" size={24} color={C.grey} />
                 <Text style={styles.actionLabel}>Delen</Text>
               </TouchableOpacity>
             </View>
@@ -96,7 +93,7 @@ export default function DealModal({ deal, visible, onClose, isFavorited, onFavor
 function InfoRow({ icon, label, value }) {
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoIcon}>{icon}</Text>
+      <MaterialIcons name={icon} size={18} color={C.grey} style={{ width: 24 }} />
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
@@ -105,16 +102,16 @@ function InfoRow({ icon, label, value }) {
 
 function getFomoText(key) {
   const map = {
-    hot: '🔥 Bijna uitverkocht',
-    timer: '⏳ Verloopt binnenkort',
-    popular: '🔥 Meest geklikt',
-    limited: '⏳ Beperkt op voorraad',
-    flash: '⚡ Flash sale',
-    stock: '🔥 Slechts 2 op voorraad',
-    bestseller: '⭐ Bestseller',
-    today: '⏰ Nog vandaag',
-    hour3: '⏰ Nog 3 uur',
-    topdeal: '💎 Top deal',
+    hot: 'Bijna uitverkocht',
+    timer: 'Verloopt binnenkort',
+    popular: 'Meest geklikt',
+    limited: 'Beperkt op voorraad',
+    flash: 'Flash sale',
+    stock: 'Slechts 2 op voorraad',
+    bestseller: 'Bestseller',
+    today: 'Nog vandaag',
+    hour3: 'Nog 3 uur',
+    topdeal: 'Top deal',
   };
   return map[key] || '';
 }
@@ -177,11 +174,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeBtnText: {
-    fontSize: 14,
-    color: C.dark,
-    fontWeight: '700',
-  },
   body: {
     padding: 20,
   },
@@ -241,10 +233,9 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
     gap: 8,
   },
-  infoIcon: { fontSize: 16, width: 24 },
   infoLabel: {
     fontFamily: 'Poppins, system-ui, sans-serif',
     fontSize: 12,
@@ -265,6 +256,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   ctaText: {
     fontFamily: 'Poppins, system-ui, sans-serif',
@@ -275,14 +268,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 24,
+    gap: 40,
     marginBottom: 8,
   },
   actionBtn: {
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
-  actionIcon: { fontSize: 22 },
   actionLabel: {
     fontFamily: 'Poppins, system-ui, sans-serif',
     fontSize: 11,

@@ -1,21 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { C, R } from '../data/theme';
 
 const LEVELS = [
-  { name: 'Bronze',  min: 0,   max: 49,  icon: '🥉', color: '#CD7F32' },
-  { name: 'Silver',  min: 50,  max: 199, icon: '🥈', color: '#A8A9AD' },
-  { name: 'Gold',    min: 200, max: 499, icon: '🥇', color: '#FFD700' },
-  { name: 'Diamond', min: 500, max: Infinity, icon: '💎', color: '#0067FF' },
+  { name: 'Bronze',  min: 0,   max: 49,  color: '#CD7F32', abbr: 'BR' },
+  { name: 'Silver',  min: 50,  max: 199, color: '#A8A9AD', abbr: 'SL' },
+  { name: 'Gold',    min: 200, max: 499, color: '#FFD700', abbr: 'GD' },
+  { name: 'Diamond', min: 500, max: Infinity, color: '#0067FF', abbr: 'DM' },
 ];
 
 const BADGES = [
-  { id: 'first_save',   icon: '❤️',  name: 'First Save',    desc: 'Sla je eerste deal op',        req: s => s.favCount >= 1 },
-  { id: 'deal_hunter',  icon: '🎯',  name: 'Deal Hunter',   desc: 'Open 10 deals',                 req: s => s.clicks >= 10 },
-  { id: 'streak_3',     icon: '🔥',  name: 'On Fire',       desc: '3 dagen op rij bezoeken',       req: s => s.streak >= 3 },
-  { id: 'streak_7',     icon: '⚡',  name: 'Dedicated',     desc: '7 dagen op rij bezoeken',       req: s => s.streak >= 7 },
-  { id: 'collector',    icon: '💾',  name: 'Collector',     desc: '10 deals opgeslagen',            req: s => s.favCount >= 10 },
-  { id: 'century',      icon: '💯',  name: 'Century Club',  desc: '100 punten verdiend',            req: s => s.points >= 100 },
+  { id: 'first_save',  icon: 'favorite',               name: 'First Save',   desc: 'Sla je eerste deal op',    req: s => s.favCount >= 1 },
+  { id: 'deal_hunter', icon: 'gps-fixed',               name: 'Deal Hunter',  desc: 'Open 10 deals',             req: s => s.clicks >= 10 },
+  { id: 'streak_3',    icon: 'local-fire-department',   name: 'On Fire',      desc: '3 dagen op rij bezoeken',   req: s => s.streak >= 3 },
+  { id: 'streak_7',    icon: 'bolt',                    name: 'Dedicated',    desc: '7 dagen op rij bezoeken',   req: s => s.streak >= 7 },
+  { id: 'collector',   icon: 'bookmark',                name: 'Collector',    desc: '10 deals opgeslagen',        req: s => s.favCount >= 10 },
+  { id: 'century',     icon: 'grade',                   name: 'Century Club', desc: '100 punten verdiend',        req: s => s.points >= 100 },
 ];
 
 function getLevel(points) {
@@ -42,15 +43,17 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
       {/* ── Reward 1: Points & Level ──────────────────────────────────── */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardIcon}>⭐</Text>
-          <View style={{ flex: 1 }}>
+          <MaterialIcons name="stars" size={28} color={C.warning} style={{ marginTop: 2 }} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>Punten & Level</Text>
             <Text style={styles.cardSub}>Verdien punten door deals te bekijken en op te slaan</Text>
           </View>
         </View>
 
         <View style={[styles.levelBadge, { backgroundColor: level.color + '20', borderColor: level.color }]}>
-          <Text style={styles.levelIcon}>{level.icon}</Text>
+          <View style={[styles.levelDot, { backgroundColor: level.color }]}>
+            <Text style={styles.levelAbbr}>{level.abbr}</Text>
+          </View>
           <View>
             <Text style={[styles.levelName, { color: level.color }]}>{level.name}</Text>
             <Text style={styles.levelPoints}>{points} punten</Text>
@@ -62,22 +65,22 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: next.color }]} />
             </View>
-            <Text style={styles.progressLabel}>{next.min - points} punten naar {next.icon} {next.name}</Text>
+            <Text style={styles.progressLabel}>{next.min - points} punten naar {next.name}</Text>
           </View>
         )}
 
         <View style={styles.earnGrid}>
-          <EarnRow icon="👆" text="Deal bekijken" pts="+1 pt" />
-          <EarnRow icon="❤️"  text="Deal opslaan" pts="+5 pt" />
-          <EarnRow icon="📅" text="Dagelijks bezoek" pts="+2 pt" />
+          <EarnRow icon="touch-app"      text="Deal bekijken"   pts="+1 pt" />
+          <EarnRow icon="favorite"       text="Deal opslaan"    pts="+5 pt" />
+          <EarnRow icon="calendar-today" text="Dagelijks bezoek" pts="+2 pt" />
         </View>
       </View>
 
       {/* ── Reward 2: Daily Streak ────────────────────────────────────── */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardIcon}>🔥</Text>
-          <View style={{ flex: 1 }}>
+          <MaterialIcons name="local-fire-department" size={28} color={C.red} style={{ marginTop: 2 }} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>Dagelijkse Streak</Text>
             <Text style={styles.cardSub}>Kom elke dag terug en bouw je streak op</Text>
           </View>
@@ -85,15 +88,15 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
 
         <View style={styles.streakCenter}>
           <Text style={styles.streakNumber}>{streak}</Text>
-          <Text style={styles.streakLabel}>{streak === 1 ? 'dag' : 'dagen'} op rij 🔥</Text>
+          <Text style={styles.streakLabel}>{streak === 1 ? 'dag' : 'dagen'} op rij</Text>
         </View>
 
         <View style={styles.streakDots}>
           {[1, 2, 3, 4, 5, 6, 7].map(d => (
             <View key={d} style={[styles.streakDot, d <= streak && styles.streakDotActive]}>
-              <Text style={[styles.streakDotTxt, d <= streak && styles.streakDotTxtActive]}>
-                {d <= streak ? '🔥' : d.toString()}
-              </Text>
+              {d <= streak
+                ? <MaterialIcons name="local-fire-department" size={16} color={C.white} />
+                : <Text style={styles.streakDotTxt}>{d}</Text>}
             </View>
           ))}
         </View>
@@ -101,10 +104,10 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
         <View style={styles.streakTip}>
           <Text style={styles.streakTipTxt}>
             {streak >= 7
-              ? '🏆 Geweldig! Je hebt 7 dagen op rij gescoord!'
+              ? 'Geweldig! Je hebt 7 dagen op rij gescoord!'
               : streak >= 3
-              ? `🔥 Nog ${7 - streak} dagen voor je 7-daagse badge!`
-              : `💡 Kom morgen terug om je streak te verlengen!`}
+              ? `Nog ${7 - streak} dagen voor je 7-daagse badge!`
+              : 'Kom morgen terug om je streak te verlengen!'}
           </Text>
         </View>
       </View>
@@ -112,8 +115,8 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
       {/* ── Reward 3: Badges ─────────────────────────────────────────── */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardIcon}>🏅</Text>
-          <View style={{ flex: 1 }}>
+          <MaterialIcons name="emoji-events" size={28} color={C.warning} style={{ marginTop: 2 }} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>Badges</Text>
             <Text style={styles.cardSub}>Unlock achievements door de app te gebruiken</Text>
           </View>
@@ -124,10 +127,15 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
             const earned = badge.req(stats);
             return (
               <View key={badge.id} style={[styles.badgeItem, !earned && styles.badgeLocked]}>
-                <Text style={[styles.badgeIcon, !earned && styles.badgeIconLocked]}>{badge.icon}</Text>
+                <MaterialIcons name={badge.icon} size={32} color={earned ? C.red : C.grey} />
                 <Text style={[styles.badgeName, !earned && { color: C.grey }]}>{badge.name}</Text>
                 <Text style={styles.badgeDesc}>{badge.desc}</Text>
-                {earned && <Text style={styles.badgeEarned}>✓ Verdiend</Text>}
+                {earned && (
+                  <View style={styles.badgeEarnedRow}>
+                    <MaterialIcons name="check-circle" size={12} color={C.success} />
+                    <Text style={styles.badgeEarned}>Verdiend</Text>
+                  </View>
+                )}
               </View>
             );
           })}
@@ -142,7 +150,7 @@ export default function RewardsScreen({ points, streak, clicks, favCount }) {
 function EarnRow({ icon, text, pts }) {
   return (
     <View style={styles.earnRow}>
-      <Text style={styles.earnIcon}>{icon}</Text>
+      <MaterialIcons name={icon} size={18} color={C.grey} style={{ width: 24 }} />
       <Text style={styles.earnText}>{text}</Text>
       <Text style={styles.earnPts}>{pts}</Text>
     </View>
@@ -163,8 +171,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 },
-  cardIcon: { fontSize: 28, marginTop: 2 },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   cardTitle: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 16, fontWeight: '700', color: C.dark },
   cardSub: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, color: C.grey, marginTop: 2 },
 
@@ -178,16 +185,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     marginBottom: 14,
   },
-  levelIcon: { fontSize: 36 },
+  levelDot: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelAbbr: { color: C.white, fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, fontWeight: '900' },
   levelName: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 18, fontWeight: '800' },
   levelPoints: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, color: C.grey, marginTop: 2 },
   progressWrap: { marginBottom: 16 },
   progressBar: { height: 8, backgroundColor: C.lightGrey, borderRadius: R.full, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: R.full },
   progressLabel: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 6, textAlign: 'center' },
-  earnGrid: { gap: 8 },
+  earnGrid: { gap: 10 },
   earnRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  earnIcon: { fontSize: 16, width: 24 },
   earnText: { flex: 1, fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, color: C.dark },
   earnPts: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, fontWeight: '700', color: C.success },
 
@@ -202,7 +215,6 @@ const styles = StyleSheet.create({
   },
   streakDotActive: { backgroundColor: C.red },
   streakDotTxt: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, color: C.grey, fontWeight: '700' },
-  streakDotTxtActive: { color: C.white, fontSize: 16 },
   streakTip: { backgroundColor: C.lightGrey, borderRadius: R.md, padding: 12 },
   streakTipTxt: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 13, color: C.dark, textAlign: 'center' },
 
@@ -216,10 +228,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  badgeLocked: { opacity: 0.45 },
-  badgeIcon: { fontSize: 32 },
-  badgeIconLocked: { opacity: 0.4 },
+  badgeLocked: { opacity: 0.4 },
   badgeName: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 12, fontWeight: '700', color: C.dark, textAlign: 'center' },
   badgeDesc: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 10, color: C.grey, textAlign: 'center' },
-  badgeEarned: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.success, marginTop: 2 },
+  badgeEarnedRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  badgeEarned: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.success },
 });

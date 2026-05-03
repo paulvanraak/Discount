@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import DealCard from '../components/DealCard';
 import { C } from '../data/theme';
 
@@ -9,7 +10,7 @@ export default function FavoritesScreen({ allDeals, favorites, onDealPress, onFa
   if (favDeals.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyIcon}>🤍</Text>
+        <MaterialIcons name="favorite-border" size={56} color={C.border} />
         <Text style={styles.emptyTitle}>Nog geen favorieten</Text>
         <Text style={styles.emptySub}>Tik op het hartje op een deal om hem hier op te slaan.</Text>
       </View>
@@ -43,7 +44,6 @@ const styles = StyleSheet.create({
     padding: 40,
     gap: 12,
   },
-  emptyIcon: { fontSize: 56 },
   emptyTitle: {
     fontFamily: 'Poppins, system-ui, sans-serif',
     fontSize: 18,

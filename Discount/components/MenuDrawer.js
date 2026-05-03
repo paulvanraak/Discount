@@ -1,23 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, TextInput, Linking,
+  ScrollView, TextInput, Linking, Animated,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { C, R } from '../data/theme';
 
-const PAGES = ['profile', 'tc', 'privacy', 'feedback', 'contact'];
+const PANEL_WIDTH = 320;
 
 const MENU_ITEMS = [
-  { key: 'profile',  icon: '👤', label: 'Profiel' },
-  { key: 'tc',       icon: '📄', label: 'Algemene voorwaarden' },
-  { key: 'privacy',  icon: '🔒', label: 'Privacybeleid' },
-  { key: 'feedback', icon: '💬', label: 'Feedback' },
-  { key: 'contact',  icon: '✉️',  label: 'Contact' },
+  { key: 'profile',  icon: 'person',       label: 'Profiel' },
+  { key: 'tc',       icon: 'description',  label: 'Algemene voorwaarden' },
+  { key: 'privacy',  icon: 'lock',         label: 'Privacybeleid' },
+  { key: 'feedback', icon: 'rate-review',  label: 'Feedback' },
+  { key: 'contact',  icon: 'mail',         label: 'Contact' },
 ];
 
 export default function MenuDrawer({ visible, onClose }) {
   const [page, setPage] = useState(null);
+  const slideAnim = useRef(new Animated.Value(PANEL_WIDTH)).current;
+  const [panelMounted, setPanelMounted] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setPanelMounted(true);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 70,
+        friction: 12,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: PANEL_WIDTH,
+        duration: 220,
+        useNativeDriver: true,
+      }).start(() => {
+        slideAnim.setValue(PANEL_WIDTH);
+        setPanelMounted(false);
+      });
+    }
+  }, [visible]);
 
   const goBack = () => setPage(null);
 
@@ -27,16 +51,17 @@ export default function MenuDrawer({ visible, onClose }) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={panelMounted} transparent animationType="none" onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
 
-        <View style={styles.panel}>
+        <Animated.View style={[styles.panel, { transform: [{ translateX: slideAnim }] }]}>
           {/* Header */}
           <View style={styles.header}>
             {page ? (
               <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-                <Text style={styles.backTxt}>← Terug</Text>
+                <MaterialIcons name="arrow-back" size={20} color={C.ocean} />
+                <Text style={styles.backTxt}>Terug</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.brand}>
@@ -47,7 +72,7 @@ export default function MenuDrawer({ visible, onClose }) {
               </View>
             )}
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Text style={styles.closeTxt}>✕</Text>
+              <MaterialIcons name="close" size={16} color={C.grey} />
             </TouchableOpacity>
           </View>
 
@@ -57,9 +82,9 @@ export default function MenuDrawer({ visible, onClose }) {
               <View>
                 {MENU_ITEMS.map((item) => (
                   <TouchableOpacity key={item.key} style={styles.menuRow} onPress={() => setPage(item.key)}>
-                    <Text style={styles.menuIcon}>{item.icon}</Text>
+                    <MaterialIcons name={item.icon} size={20} color={C.grey} style={{ width: 28 }} />
                     <Text style={styles.menuLabel}>{item.label}</Text>
-                    <Text style={styles.menuArrow}>›</Text>
+                    <MaterialIcons name="chevron-right" size={20} color={C.grey} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -70,7 +95,7 @@ export default function MenuDrawer({ visible, onClose }) {
             {page === 'feedback' && <FeedbackPage />}
             {page === 'contact'  && <ContactPage />}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -106,7 +131,10 @@ function ProfilePage() {
       <Text style={subStyles.fieldLabel}>E-mail</Text>
       <TextInput style={subStyles.input} value={email} onChangeText={setEmail} placeholder="naam@email.com" placeholderTextColor={C.grey} keyboardType="email-address" autoCapitalize="none" />
       <TouchableOpacity style={subStyles.saveBtn} onPress={save}>
-        <Text style={subStyles.saveTxt}>{saved ? '✓ Opgeslagen!' : 'Opslaan'}</Text>
+        {saved
+          ? <MaterialIcons name="check" size={18} color={C.white} style={{ marginRight: 6 }} />
+          : null}
+        <Text style={subStyles.saveTxt}>{saved ? 'Opgeslagen!' : 'Opslaan'}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -139,9 +167,9 @@ function PrivacyPage() {
       <Text style={subStyles.body}>
         Uw privacy is belangrijk voor ons. Dit beleid legt uit welke gegevens wij verzamelen en hoe wij deze gebruiken.{'\n\n'}
         <Text style={subStyles.bold}>Gegevens die wij opslaan:{'\n'}</Text>
-        • Naam en e-mailadres (optioneel, alleen lokaal opgeslagen){'\n'}
-        • App-voorkeuren en favorieten (lokaal op uw apparaat){'\n'}
-        • Anonieme gebruiksstatistieken{'\n\n'}
+        {'• '}Naam en e-mailadres (optioneel, alleen lokaal opgeslagen){'\n'}
+        {'• '}App-voorkeuren en favorieten (lokaal op uw apparaat){'\n'}
+        {'• '}Anonieme gebruiksstatistieken{'\n\n'}
         <Text style={subStyles.bold}>Wij delen uw gegevens niet{'\n'}</Text>
         Wij verkopen, verhuren of delen uw persoonlijke gegevens nooit met derden voor marketingdoeleinden.{'\n\n'}
         <Text style={subStyles.bold}>Cookies & tracking{'\n'}</Text>
@@ -166,8 +194,8 @@ function FeedbackPage() {
   if (sent) {
     return (
       <View style={[subStyles.wrap, { alignItems: 'center', paddingTop: 40 }]}>
-        <Text style={{ fontSize: 48 }}>🎉</Text>
-        <Text style={[subStyles.pageTitle, { textAlign: 'center', marginTop: 12 }]}>Bedankt!</Text>
+        <MaterialIcons name="celebration" size={56} color={C.red} />
+        <Text style={[subStyles.pageTitle, { textAlign: 'center', marginTop: 16 }]}>Bedankt!</Text>
         <Text style={[subStyles.body, { textAlign: 'center' }]}>Jouw feedback helpt ons verbeteren.</Text>
       </View>
     );
@@ -177,10 +205,14 @@ function FeedbackPage() {
     <View style={subStyles.wrap}>
       <Text style={subStyles.pageTitle}>Geef feedback</Text>
       <Text style={subStyles.body}>Hoe tevreden ben jij met Donnie Discount?</Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginVertical: 20 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginVertical: 20 }}>
         {[1, 2, 3, 4, 5].map(s => (
           <TouchableOpacity key={s} onPress={() => setRating(s)}>
-            <Text style={{ fontSize: 36, opacity: s <= rating ? 1 : 0.3 }}>⭐</Text>
+            <MaterialIcons
+              name={s <= rating ? 'star' : 'star-border'}
+              size={38}
+              color={s <= rating ? C.warning : C.border}
+            />
           </TouchableOpacity>
         ))}
       </View>
@@ -204,11 +236,9 @@ function ContactPage() {
   return (
     <View style={subStyles.wrap}>
       <Text style={subStyles.pageTitle}>Contact</Text>
-
-      <ContactRow icon="✉️" label="E-mail" value="info@donniediscount.nl" onPress={() => Linking.openURL('mailto:info@donniediscount.nl')} />
-      <ContactRow icon="🌐" label="Website" value="www.donniediscount.nl" onPress={() => Linking.openURL('https://donniediscount.nl')} />
-      <ContactRow icon="📸" label="Instagram" value="@donniediscount" onPress={() => Linking.openURL('https://instagram.com/donniediscount')} />
-
+      <ContactRow icon="mail" label="E-mail" value="info@donniediscount.nl" onPress={() => Linking.openURL('mailto:info@donniediscount.nl')} />
+      <ContactRow icon="language" label="Website" value="www.donniediscount.nl" onPress={() => Linking.openURL('https://donniediscount.nl')} />
+      <ContactRow icon="photo-camera" label="Instagram" value="@donniediscount" onPress={() => Linking.openURL('https://instagram.com/donniediscount')} />
       <View style={subStyles.contactBox}>
         <Text style={subStyles.bold}>Zakelijk contact</Text>
         <Text style={[subStyles.body, { marginTop: 4 }]}>
@@ -222,12 +252,12 @@ function ContactPage() {
 function ContactRow({ icon, label, value, onPress }) {
   return (
     <TouchableOpacity style={subStyles.contactRow} onPress={onPress}>
-      <Text style={{ fontSize: 20, width: 32 }}>{icon}</Text>
+      <MaterialIcons name={icon} size={20} color={C.grey} style={{ width: 32 }} />
       <View style={{ flex: 1 }}>
         <Text style={subStyles.fieldLabel}>{label}</Text>
         <Text style={[subStyles.body, { color: C.ocean }]}>{value}</Text>
       </View>
-      <Text style={{ color: C.grey }}>›</Text>
+      <MaterialIcons name="chevron-right" size={20} color={C.grey} />
     </TouchableOpacity>
   );
 }
@@ -238,7 +268,7 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end' },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
   panel: {
-    width: 320,
+    width: PANEL_WIDTH,
     backgroundColor: C.white,
     shadowColor: '#000',
     shadowOffset: { width: -4, height: 0 },
@@ -267,13 +297,12 @@ const styles = StyleSheet.create({
   },
   brandMarkTxt: { color: C.white, fontWeight: '900', fontSize: 12, fontFamily: 'Poppins, system-ui, sans-serif' },
   brandName: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 14, fontWeight: '700', color: C.dark },
-  backBtn: { paddingVertical: 4 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 },
   backTxt: { fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 14, color: C.ocean, fontWeight: '600' },
   closeBtn: {
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: C.lightGrey, justifyContent: 'center', alignItems: 'center',
   },
-  closeTxt: { fontSize: 14, color: C.grey, fontWeight: '700' },
   content: { flex: 1 },
   menuRow: {
     flexDirection: 'row',
@@ -282,11 +311,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: C.lightGrey,
-    gap: 14,
+    gap: 12,
   },
-  menuIcon: { fontSize: 20, width: 28 },
   menuLabel: { flex: 1, fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 15, fontWeight: '500', color: C.dark },
-  menuArrow: { fontSize: 20, color: C.grey },
 });
 
 const subStyles = StyleSheet.create({
@@ -307,7 +334,11 @@ const subStyles = StyleSheet.create({
     fontFamily: 'Poppins, system-ui, sans-serif', fontSize: 14, color: C.dark,
     outlineStyle: 'none',
   },
-  saveBtn: { backgroundColor: C.red, borderRadius: R.lg, height: 48, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
+  saveBtn: {
+    backgroundColor: C.red, borderRadius: R.lg, height: 48,
+    justifyContent: 'center', alignItems: 'center', marginTop: 20,
+    flexDirection: 'row',
+  },
   saveTxt: { fontFamily: 'Poppins, system-ui, sans-serif', color: C.white, fontWeight: '700', fontSize: 15 },
   contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.lightGrey, gap: 12 },
   contactBox: { marginTop: 20, padding: 16, backgroundColor: C.lightGrey, borderRadius: R.lg },

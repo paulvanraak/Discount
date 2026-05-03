@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { C, R, S } from '../data/theme';
 
 export default function DealCard({ deal, onPress, onFavorite, isFavorited, t }) {
@@ -7,24 +8,22 @@ export default function DealCard({ deal, onPress, onFavorite, isFavorited, t }) 
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.93}>
-      {/* Image area */}
       <View style={styles.imageWrap}>
         <Image source={{ uri: deal.image }} style={styles.image} resizeMode="cover" />
 
-        {/* Discount flag – ribbon from left */}
         <View style={styles.flag}>
           <Text style={styles.flagText}>-{deal.discountPercentage}%</Text>
         </View>
 
-        {/* Heart icon – top right */}
         <TouchableOpacity style={styles.heartBtn} onPress={onFavorite} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-          <Text style={[styles.heartIcon, isFavorited && styles.heartActive]}>
-            {isFavorited ? '❤️' : '🤍'}
-          </Text>
+          <MaterialIcons
+            name={isFavorited ? 'favorite' : 'favorite-border'}
+            size={16}
+            color={isFavorited ? C.red : C.grey}
+          />
         </TouchableOpacity>
       </View>
 
-      {/* Info */}
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>{deal.title}</Text>
 
@@ -87,15 +86,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  heartIcon: {
-    fontSize: 14,
-  },
-  heartActive: {
-    fontSize: 14,
   },
   info: {
     padding: 10,

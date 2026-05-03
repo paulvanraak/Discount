@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView,
+  TextInput, ScrollView, Animated,
 } from 'react-native';
-import { C, R, S } from '../data/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import { C, R } from '../data/theme';
 
 const CATS = [
-  { key: 'all', label: 'Alles' },
-  { key: 'tech', label: '💻 Tech' },
-  { key: 'kitchen', label: '🍳 Keuken' },
-  { key: 'home', label: '🏠 Huishouden' },
+  { key: 'all',     label: 'Alles',      icon: 'apps' },
+  { key: 'tech',    label: 'Tech',        icon: 'laptop' },
+  { key: 'kitchen', label: 'Keuken',      icon: 'kitchen' },
+  { key: 'home',    label: 'Huishouden',  icon: 'weekend' },
 ];
 
 const DISCOUNTS = ['40%+', '50%+', '60%+', '70%+'];
+
+const PANEL_WIDTH = 300;
 
 export default function FilterPanel({
   visible, onClose,
@@ -22,6 +25,32 @@ export default function FilterPanel({
   maxPrice, setMaxPrice,
   onApply,
 }) {
+  const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
+  const [panelMounted, setPanelMounted] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setPanelMounted(true);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 70,
+        friction: 12,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: -PANEL_WIDTH,
+        duration: 220,
+        useNativeDriver: true,
+      }).start(() => {
+        slideAnim.setValue(-PANEL_WIDTH);
+        setPanelMounted(false);
+      });
+    }
+  }, [visible]);
+
+  const handleClose = () => onClose();
+
   const handleApply = () => {
     onApply();
     onClose();
@@ -37,29 +66,34 @@ export default function FilterPanel({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={panelMounted} transparent animationType="none" onRequestClose={handleClose}>
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-
-        <View style={styles.panel}>
+        {/* Panel slides in from left */}
+        <Animated.View style={[styles.panel, { transform: [{ translateX: slideAnim }] }]}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Filters</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeTxt}>✕</Text>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+              <MaterialIcons name="close" size={18} color={C.grey} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
             {/* Category */}
             <Text style={styles.sectionLabel}>CATEGORIE</Text>
             <View style={styles.chipRow}>
-              {CATS.map(({ key, label }) => (
+              {CATS.map(({ key, label, icon }) => (
                 <TouchableOpacity
                   key={key}
                   style={[styles.chip, activeCat === key && styles.chipOn]}
                   onPress={() => setActiveCat(key)}
                 >
+                  <MaterialIcons
+                    name={icon}
+                    size={14}
+                    color={activeCat === key ? C.red : C.grey}
+                    style={{ marginRight: 4 }}
+                  />
                   <Text style={[styles.chipTxt, activeCat === key && styles.chipTxtOn]}>
                     {label}
                   </Text>
@@ -119,7 +153,10 @@ export default function FilterPanel({
               <Text style={styles.applyTxt}>Toepassen</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
+
+        {/* Backdrop on the right */}
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
       </View>
     </Modal>
   );
@@ -130,19 +167,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
   panel: {
-    width: 300,
+    width: PANEL_WIDTH,
     backgroundColor: C.white,
-    padding: 0,
     shadowColor: '#000',
-    shadowOffset: { width: -4, height: 0 },
+    shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 10,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   header: {
     flexDirection: 'row',
@@ -168,11 +204,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeTxt: {
-    fontSize: 14,
-    color: C.grey,
-    fontWeight: '700',
-  },
   sectionLabel: {
     fontFamily: 'Poppins, system-ui, sans-serif',
     fontSize: 10,
@@ -190,7 +221,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   chip: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: R.full,
     backgroundColor: C.lightGrey,
