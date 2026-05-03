@@ -6,10 +6,12 @@ import {
 import Icon from './Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { C, R } from '../data/theme';
+import { useLanguage } from '../context/LanguageContext';
 
 const PANEL_WIDTH = 320;
 
 const MENU_ITEMS = [
+  { key: 'locale',   icon: 'language',     label: 'Taal & Regio' },
   { key: 'profile',  icon: 'person',       label: 'Profiel' },
   { key: 'tc',       icon: 'description',  label: 'Algemene voorwaarden' },
   { key: 'privacy',  icon: 'lock',         label: 'Privacybeleid' },
@@ -89,6 +91,7 @@ export default function MenuDrawer({ visible, onClose }) {
                 ))}
               </View>
             )}
+            {page === 'locale'   && <LocalePage />}
             {page === 'profile'  && <ProfilePage />}
             {page === 'tc'       && <TCPage />}
             {page === 'privacy'  && <PrivacyPage />}
@@ -102,6 +105,92 @@ export default function MenuDrawer({ visible, onClose }) {
 }
 
 /* ── Sub-pages ────────────────────────────────────────────────────────── */
+
+const LOCALE_LANGUAGES = [
+  { code: 'nl', abbr: 'NL', name: 'Nederlands' },
+  { code: 'en', abbr: 'EN', name: 'English' },
+  { code: 'de', abbr: 'DE', name: 'Deutsch' },
+  { code: 'es', abbr: 'ES', name: 'Español' },
+];
+
+const LOCALE_REGIONS = {
+  nl: [{ code: 'NL', name: 'Nederland' }, { code: 'BE', name: 'België' }],
+  en: [{ code: 'US', name: 'United States' }, { code: 'UK', name: 'United Kingdom' }, { code: 'AU', name: 'Australia' }, { code: 'CA', name: 'Canada' }],
+  de: [{ code: 'DE', name: 'Deutschland' }, { code: 'AT', name: 'Österreich' }, { code: 'CH', name: 'Schweiz' }],
+  es: [{ code: 'ES', name: 'España' }, { code: 'MX', name: 'México' }, { code: 'AR', name: 'Argentina' }, { code: 'CO', name: 'Colombia' }],
+};
+
+function LocalePage() {
+  const { lang, setLang, region, setRegion } = useLanguage();
+  const [selLang, setSelLang] = useState(lang);
+  const [selRegion, setSelRegion] = useState(region);
+  const [saved, setSaved] = useState(false);
+
+  const handleLangSelect = (code) => {
+    setSelLang(code);
+    setSelRegion(LOCALE_REGIONS[code][0].code);
+  };
+
+  const save = async () => {
+    setLang(selLang);
+    setRegion(selRegion);
+    await AsyncStorage.multiSet([['language', selLang], ['region', selRegion]]);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const regions = LOCALE_REGIONS[selLang] || [];
+
+  return (
+    <View style={subStyles.wrap}>
+      <Text style={subStyles.pageTitle}>Taal & Regio</Text>
+
+      <Text style={subStyles.fieldLabel}>TAAL / LANGUAGE</Text>
+      <View style={localeStyles.langGrid}>
+        {LOCALE_LANGUAGES.map(l => {
+          const active = selLang === l.code;
+          return (
+            <TouchableOpacity
+              key={l.code}
+              style={[localeStyles.langChip, active && localeStyles.langChipActive]}
+              onPress={() => handleLangSelect(l.code)}
+              activeOpacity={0.85}
+            >
+              <Text style={[localeStyles.langAbbr, active && { color: C.red }]}>{l.abbr}</Text>
+              <Text style={[localeStyles.langName, active && { color: C.dark }]}>{l.name}</Text>
+              {active && <Icon name="check-circle" size={14} color={C.red} style={{ marginTop: 4 }} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <Text style={[subStyles.fieldLabel, { marginTop: 20 }]}>REGIO / REGION</Text>
+      <Text style={[subStyles.body, { marginBottom: 10 }]}>Bepaalt welke winkels we tonen</Text>
+      <View style={localeStyles.regionRow}>
+        {regions.map(r => {
+          const active = selRegion === r.code;
+          return (
+            <TouchableOpacity
+              key={r.code}
+              style={[localeStyles.regionChip, active && localeStyles.regionChipActive]}
+              onPress={() => setSelRegion(r.code)}
+              activeOpacity={0.85}
+            >
+              {active && <Icon name="check" size={14} color={C.red} style={{ marginRight: 4 }} />}
+              <Text style={[localeStyles.regionCode, active && { color: C.red }]}>{r.code}</Text>
+              <Text style={[localeStyles.regionName, active && { color: C.dark }]}>{r.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <TouchableOpacity style={subStyles.saveBtn} onPress={save}>
+        {saved && <Icon name="check" size={18} color={C.white} style={{ marginRight: 6 }} />}
+        <Text style={subStyles.saveTxt}>{saved ? 'Opgeslagen!' : 'Opslaan'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 function ProfilePage() {
   const [name, setName] = useState('');
@@ -284,7 +373,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    borderBottomColor: 'rgba(255,64,64,0.12)',
+    backgroundColor: C.redTint,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandMark: {
@@ -342,4 +432,34 @@ const subStyles = StyleSheet.create({
   saveTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', color: C.white, fontWeight: '700', fontSize: 15 },
   contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.lightGrey, gap: 12 },
   contactBox: { marginTop: 20, padding: 16, backgroundColor: C.lightGrey, borderRadius: R.lg },
+});
+
+const localeStyles = StyleSheet.create({
+  langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  langChip: {
+    width: '47%',
+    backgroundColor: C.lightGrey,
+    borderRadius: R.md,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  langChipActive: { backgroundColor: C.redTint, borderColor: C.red },
+  langAbbr: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 18, fontWeight: '800', color: C.grey, marginBottom: 2 },
+  langName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, fontWeight: '600', color: C.grey },
+  regionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  regionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: R.full,
+    backgroundColor: C.lightGrey,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  regionChipActive: { backgroundColor: C.redTint, borderColor: C.red },
+  regionCode: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, fontWeight: '800', color: C.grey, marginRight: 5 },
+  regionName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, fontWeight: '500', color: C.grey },
 });

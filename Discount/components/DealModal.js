@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   },
   dealPrice: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '800',
     color: C.dark,
   },

@@ -158,7 +158,7 @@ function EarnRow({ icon, text, pts }) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: C.lightGrey },
+  scroll: { flex: 1, backgroundColor: C.red },
   content: { padding: 16, gap: 16 },
 
   card: {

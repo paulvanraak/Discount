@@ -421,24 +421,24 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
 function TabBtn({ icon, iconActive, label, active, isCenter, badge, onPress }) {
   const iconName = active ? iconActive : icon;
   return (
-    <TouchableOpacity style={[styles.tabBtn, isCenter && styles.tabBtnCenter]} onPress={onPress} activeOpacity={0.8}>
-      {isCenter ? (
-        <View style={[styles.tabCenterInner, active && styles.tabCenterActive]}>
-          <Icon name={iconName} size={26} color={active ? C.white : C.grey} />
-        </View>
-      ) : (
-        <View style={styles.tabBtnInner}>
-          <View style={{ position: 'relative' }}>
+    <TouchableOpacity style={styles.tabBtn} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.tabBtnInner}>
+        <View style={{ position: 'relative' }}>
+          {isCenter ? (
+            <View style={[styles.tabCenterInner, active && styles.tabCenterActive]}>
+              <Icon name={iconName} size={22} color={active ? C.white : C.grey} />
+            </View>
+          ) : (
             <Icon name={iconName} size={22} color={active ? C.red : C.grey} />
-            {badge != null && (
-              <View style={styles.tabBadge}>
-                <Text style={styles.tabBadgeTxt}>{badge > 9 ? '9+' : badge}</Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+          )}
+          {badge != null && !isCenter && (
+            <View style={styles.tabBadge}>
+              <Text style={styles.tabBadgeTxt}>{badge > 9 ? '9+' : badge}</Text>
+            </View>
+          )}
         </View>
-      )}
+        <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -452,12 +452,12 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.white,
+    backgroundColor: C.redTint,
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    borderBottomColor: 'rgba(255,64,64,0.12)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: R.md,
-    backgroundColor: C.lightGrey,
+    backgroundColor: 'rgba(255,64,64,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
   },
   featuredPrice: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
     color: C.white,
   },
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingTop: 8,
     paddingHorizontal: 16,
-    alignItems: 'flex-end',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
@@ -705,15 +705,15 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   tabBtn: { flex: 1, alignItems: 'center' },
-  tabBtnCenter: { flex: 1, alignItems: 'center', marginBottom: 4 },
   tabBtnInner: { alignItems: 'center', gap: 2 },
   tabCenterInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: C.lightGrey,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 2,
   },
   tabCenterActive: { backgroundColor: C.red },
   tabLabel: {

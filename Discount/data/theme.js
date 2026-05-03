@@ -1,5 +1,6 @@
 export const C = {
   red:       '#FF4040',
+  redTint:   '#FFF0F0',
   navy:      '#002B80',
   ocean:     '#0067FF',
   dark:      '#1E2638',
