@@ -22,24 +22,23 @@ const MENU_ITEMS = [
 export default function MenuDrawer({ visible, onClose }) {
   const [page, setPage] = useState(null);
   const slideAnim = useRef(new Animated.Value(PANEL_WIDTH)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
   const [panelMounted, setPanelMounted] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setPanelMounted(true);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 70,
-        friction: 12,
-      }).start();
+      Animated.parallel([
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
+        Animated.timing(fadeAnim,  { toValue: 1, duration: 260, useNativeDriver: true }),
+      ]).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: PANEL_WIDTH,
-        duration: 220,
-        useNativeDriver: true,
-      }).start(() => {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: PANEL_WIDTH, duration: 220, useNativeDriver: true }),
+        Animated.timing(fadeAnim,  { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start(() => {
         slideAnim.setValue(PANEL_WIDTH);
+        fadeAnim.setValue(0);
         setPanelMounted(false);
       });
     }
@@ -55,7 +54,9 @@ export default function MenuDrawer({ visible, onClose }) {
   return (
     <Modal visible={panelMounted} transparent animationType="none" onRequestClose={handleClose}>
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
+        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
+        </Animated.View>
 
         <Animated.View style={[styles.panel, { transform: [{ translateX: slideAnim }] }]}>
           {/* Header */}
@@ -355,7 +356,7 @@ function ContactRow({ icon, label, value, onPress }) {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },  // Animated.View wrapper handles opacity
   panel: {
     width: PANEL_WIDTH,
     backgroundColor: C.white,
