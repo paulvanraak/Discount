@@ -68,16 +68,16 @@ const styles = StyleSheet.create({
     top: 12,
     left: 0,
     backgroundColor: C.red,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
   },
   flagText: {
     color: C.white,
     fontFamily: 'Open Sans, system-ui, sans-serif',
     fontWeight: '800',
-    fontSize: 11,
+    fontSize: 16,
   },
   heartBtn: {
     position: 'absolute',
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
   },
   title: {
     ...S.h3,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 20,
     marginBottom: 4,
   },
   priceRow: {
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   dealPrice: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 18,
+    fontSize: 21,
     fontWeight: '800',
     color: C.dark,
   },
