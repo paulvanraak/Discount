@@ -14,7 +14,6 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import * as StoreReview from 'expo-store-review';
 import DealCard from '../components/DealCard';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchDeals } from '../services/api';
@@ -41,7 +40,6 @@ export default function HomeScreen() {
   const [page, setPage]             = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading]       = useState(true);
-  const [clicks, setClicks]         = useState(0);
 
   // Initial load
   React.useEffect(() => {
@@ -129,15 +127,9 @@ export default function HomeScreen() {
     setPage(next);
   };
 
-  const handleDealClick = async (deal) => {
+  const handleDealClick = (deal) => {
     const store = t.affiliates[deal.affiliateStore];
     const url = store.url + '/' + deal.id;
-    const newClicks = clicks + 1;
-    setClicks(newClicks);
-    if (newClicks === 5 && Platform.OS !== 'web') {
-      const available = await StoreReview.isAvailableAsync();
-      if (available) StoreReview.requestReview();
-    }
     Linking.openURL(url).catch(() => {});
   };
 
