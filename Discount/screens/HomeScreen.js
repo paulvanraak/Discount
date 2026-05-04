@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   RefreshControl, TouchableOpacity, TextInput,
-  Platform, Image, Animated, ScrollView, PanResponder,
+  Platform, Image, Animated, ScrollView, PanResponder, Dimensions,
 } from 'react-native';
 import Icon from '../components/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,7 +22,7 @@ import { C, R } from '../data/theme';
 
 const PAGE_SIZE = 8;
 
-const CATS = [
+export const CATS = [
   { key: 'all',     label: 'Alles',      icon: 'apps' },
   { key: 'tech',    label: 'Tech',        icon: 'laptop' },
   { key: 'fashion', label: 'Mode',        icon: 'checkroom' },
@@ -33,41 +33,169 @@ const CATS = [
   { key: 'garden',  label: 'Tuin',        icon: 'yard' },
 ];
 
+/* ── Animated category tab bar ───────────────────────────────────────── */
+
+function CategoryTabBar({ activeCat, onSelect }) {
+  const scrollRef   = useRef(null);
+  const tabLayouts  = useRef({});
+  const indicatorX  = useRef(new Animated.Value(0)).current;
+  const indicatorW  = useRef(new Animated.Value(40)).current;
+
+  const moveIndicator = (key, animate) => {
+    const layout = tabLayouts.current[key];
+    if (!layout) return;
+    if (animate) {
+      Animated.parallel([
+        Animated.spring(indicatorX, { toValue: layout.x, useNativeDriver: false, tension: 160, friction: 18 }),
+        Animated.spring(indicatorW, { toValue: layout.width, useNativeDriver: false, tension: 160, friction: 18 }),
+      ]).start();
+    } else {
+      indicatorX.setValue(layout.x);
+      indicatorW.setValue(layout.width);
+    }
+    // Auto-scroll the active tab into view
+    if (scrollRef.current && layout) {
+      scrollRef.current.scrollTo({ x: Math.max(0, layout.x - 80), animated: animate });
+    }
+  };
+
+  useEffect(() => { moveIndicator(activeCat, true); }, [activeCat]);
+
+  return (
+    <View style={tabStyles.wrap}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={tabStyles.content}
+      >
+        {/* Row of tabs + animated underline indicator */}
+        <View style={{ flexDirection: 'row', position: 'relative', paddingBottom: 2 }}>
+          {CATS.map(({ key, label, icon }) => {
+            const active = activeCat === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={tabStyles.tab}
+                onPress={() => onSelect(key)}
+                onLayout={e => {
+                  const { x, width } = e.nativeEvent.layout;
+                  tabLayouts.current[key] = { x, width };
+                  if (key === activeCat) moveIndicator(key, false);
+                }}
+                activeOpacity={0.75}
+              >
+                <Icon name={icon} size={14} color={active ? C.red : C.grey} />
+                <Text style={[tabStyles.label, active && tabStyles.labelActive]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Animated red underline — moves with active tab */}
+          <Animated.View
+            style={[tabStyles.indicator, { left: indicatorX, width: indicatorW }]}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Right-edge gradient + chevron hint */}
+      <View style={tabStyles.arrowWrap} pointerEvents="none">
+        <Icon name="chevron-right" size={16} color={C.grey} />
+      </View>
+    </View>
+  );
+}
+
+const tabStyles = StyleSheet.create({
+  wrap: {
+    backgroundColor: C.white,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  content: { paddingHorizontal: 4 },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  label: {
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontSize: 13, fontWeight: '500', color: C.grey,
+  },
+  labelActive: { color: C.red, fontWeight: '700' },
+  indicator: {
+    position: 'absolute',
+    bottom: 0,
+    height: 2,
+    backgroundColor: C.red,
+    borderRadius: 1,
+  },
+  arrowWrap: {
+    position: 'absolute',
+    right: 0, top: 0, bottom: 0,
+    width: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // fade on web
+    ...(Platform.OS === 'web' ? { background: 'linear-gradient(to right, transparent, white 60%)' } : { backgroundColor: 'rgba(255,255,255,0.9)' }),
+  },
+});
+
+/* ── HomeScreen ──────────────────────────────────────────────────────── */
+
 export default function HomeScreen() {
   const { t, region } = useLanguage();
 
   const [activeTab, setActiveTab] = useState('home');
-  const [allDeals, setAllDeals] = useState([]);
-  const [deals, setDeals] = useState([]);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [allDeals, setAllDeals]   = useState([]);
+  const [deals, setDeals]         = useState([]);
+  const [page, setPage]           = useState(1);
+  const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [activeCat, setActiveCat] = useState('all');
-  const [activeDisc, setActiveDisc] = useState(null);  // number or null
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [activeCat,  setActiveCat]  = useState('all');
+  const [activeDisc, setActiveDisc] = useState(null);   // number | null
+  const [minPrice,   setMinPrice]   = useState('');
+  const [maxPrice,   setMaxPrice]   = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery]           = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef(null);
 
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuVisible, setMenuVisible]   = useState(false);
   const [selectedDeal, setSelectedDeal] = useState(null);
-  const [favorites, setFavorites] = useState(new Set());
+  const [favorites, setFavorites]       = useState(new Set());
 
-  const [points, setPoints] = useState(0);
-  const [streak, setStreak] = useState(1);
-  const [clicks, setClicks] = useState(0);
+  const [points, setPoints]   = useState(0);
+  const [streak, setStreak]   = useState(1);
+  const [clicks, setClicks]   = useState(0);
   const [favCount, setFavCount] = useState(0);
   const [streakToast, setStreakToast] = useState(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
-  // Ref for swipe detection so PanResponder can access current category
-  const activeCatRef = useRef(activeCat);
+  // Slide animation for category transitions
+  const slideAnim      = useRef(new Animated.Value(0)).current;
+  const catChangeDirRef = useRef(0);   // -1 = left, +1 = right, 0 = initial
+  const activeCatRef   = useRef(activeCat);
   useEffect(() => { activeCatRef.current = activeCat; }, [activeCat]);
+
+  // Trigger slide-in when activeCat changes
+  useEffect(() => {
+    const dir = catChangeDirRef.current;
+    if (dir === 0) return;
+    catChangeDirRef.current = 0;
+    const W = Dimensions.get('window').width;
+    slideAnim.setValue(dir * W);
+    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 14 }).start();
+  }, [activeCat]);
+
+  /* ── Data loading ──────────────────────────────────────────────────── */
 
   useEffect(() => {
     loadPersistedFilters();
@@ -96,7 +224,10 @@ export default function HomeScreen() {
 
   const loadDeals = useCallback(async (cat, disc, min, max, search = '') => {
     try {
-      let result = await fetchDeals({ category: cat, minDiscount: disc || undefined, minPrice: min || undefined, maxPrice: max || undefined, region });
+      let result = await fetchDeals({
+        category: cat, minDiscount: disc || undefined,
+        minPrice: min || undefined, maxPrice: max || undefined, region,
+      });
       if (search.trim()) {
         const q = search.toLowerCase();
         result = result.filter(d => d.title.toLowerCase().includes(q));
@@ -111,13 +242,24 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Category tab change — triggers immediate reload
+  // Category tab/swipe change — sets direction then triggers effect via setActiveCat
   const handleCatChange = useCallback((cat) => {
+    if (cat === activeCatRef.current) return;
+    if (catChangeDirRef.current === 0) {
+      // Tap (not swipe — swipe sets direction before calling this)
+      const keys = CATS.map(c => c.key);
+      const oldIdx = keys.indexOf(activeCatRef.current);
+      const newIdx = keys.indexOf(cat);
+      catChangeDirRef.current = newIdx > oldIdx ? 1 : -1;
+    }
     setActiveCat(cat);
     setLoading(true);
     loadDeals(cat, activeDisc, minPrice, maxPrice, query);
     AsyncStorage.setItem('dd_filter_cat', cat).catch(() => {});
   }, [activeDisc, minPrice, maxPrice, query, loadDeals]);
+
+  const handleCatChangeRef = useRef(handleCatChange);
+  useEffect(() => { handleCatChangeRef.current = handleCatChange; }, [handleCatChange]);
 
   const applyFilters = useCallback(() => {
     setLoading(true);
@@ -130,7 +272,6 @@ export default function HomeScreen() {
     ]).catch(() => {});
   }, [activeCat, activeDisc, minPrice, maxPrice, query, loadDeals]);
 
-  // Reset directly loads without stale closure problem
   const handleFilterReset = useCallback(() => {
     setActiveDisc(null);
     setMinPrice('');
@@ -138,9 +279,7 @@ export default function HomeScreen() {
     setLoading(true);
     loadDeals(activeCat, null, '', '', query);
     AsyncStorage.multiSet([
-      ['dd_filter_disc', ''],
-      ['dd_filter_min',  ''],
-      ['dd_filter_max',  ''],
+      ['dd_filter_disc', ''], ['dd_filter_min', ''], ['dd_filter_max', ''],
     ]).catch(() => {});
   }, [activeCat, query, loadDeals]);
 
@@ -158,12 +297,13 @@ export default function HomeScreen() {
     setPage(next);
   };
 
+  /* ── Search ────────────────────────────────────────────────────────── */
+
   const handleQueryChange = (text) => {
     setQuery(text);
     if (!text.trim()) { setSuggestions([]); return; }
     const q = text.toLowerCase();
-    const matches = mockDeals.filter(d => d.title.toLowerCase().includes(q)).slice(0, 5);
-    setSuggestions(matches);
+    setSuggestions(mockDeals.filter(d => d.title.toLowerCase().includes(q)).slice(0, 5));
   };
 
   const handleSuggestionTap = (deal) => {
@@ -180,6 +320,8 @@ export default function HomeScreen() {
     setLoading(true);
     loadDeals(activeCat, activeDisc, minPrice, maxPrice, query);
   };
+
+  /* ── Favorites ─────────────────────────────────────────────────────── */
 
   const loadFavorites = async () => {
     try {
@@ -203,6 +345,8 @@ export default function HomeScreen() {
     await AsyncStorage.setItem('dd_favorites', JSON.stringify([...next]));
   };
 
+  /* ── Rewards ───────────────────────────────────────────────────────── */
+
   const initRewards = async () => {
     try {
       const [pts, cl, fc, st, lv] = await AsyncStorage.multiGet(
@@ -211,16 +355,14 @@ export default function HomeScreen() {
       const p = parseInt(pts[1] || '0', 10);
       const c = parseInt(cl[1] || '0', 10);
       const f = parseInt(fc[1] || '0', 10);
-      let s = parseInt(st[1] || '1', 10);
+      let s   = parseInt(st[1] || '1', 10);
       const lastVisit = lv[1];
       const today = new Date().toDateString();
-
       if (lastVisit && lastVisit !== today) {
         const diff = Math.round((new Date(today) - new Date(lastVisit)) / 86400000);
         s = diff === 1 ? s + 1 : 1;
       }
       await AsyncStorage.multiSet([['dd_streak', String(s)], ['dd_last_visit', today]]);
-
       if (lastVisit !== today) {
         const newP = p + 2;
         setPoints(newP);
@@ -271,7 +413,8 @@ export default function HomeScreen() {
     if (deal && !favorites.has(dealId)) trackAddToWishlist(deal);
   };
 
-  // Swipe left/right to change category
+  /* ── Swipe gesture (PanResponder) ──────────────────────────────────── */
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
@@ -282,32 +425,32 @@ export default function HomeScreen() {
         const keys = CATS.map(c => c.key);
         const idx  = keys.indexOf(activeCatRef.current);
         if (gs.dx < 0 && idx < keys.length - 1) {
+          catChangeDirRef.current = 1;   // swipe left → next category, content slides from right
           handleCatChangeRef.current(keys[idx + 1]);
         } else if (gs.dx > 0 && idx > 0) {
+          catChangeDirRef.current = -1;  // swipe right → prev category, content slides from left
           handleCatChangeRef.current(keys[idx - 1]);
         }
       },
     })
   ).current;
 
-  // Ref so panResponder always calls the latest handleCatChange
-  const handleCatChangeRef = useRef(handleCatChange);
-  useEffect(() => { handleCatChangeRef.current = handleCatChange; }, [handleCatChange]);
+  /* ── Derived ───────────────────────────────────────────────────────── */
 
   const activeFilterCount = [activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
   const featuredDeal = allDeals.find(d => d.fomoKey === 'hot') || allDeals[0];
 
+  /* ── Render ────────────────────────────────────────────────────────── */
+
   return (
     <SafeAreaView style={styles.safe}>
 
-      {/* ── Top Bar (light grey) ─────────────────────────────────────── */}
+      {/* ── Top Bar ──────────────────────────────────────────────────── */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
           <Icon name="tune" size={20} color={C.dark} />
           {activeFilterCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeTxt}>{activeFilterCount}</Text>
-            </View>
+            <View style={styles.badge}><Text style={styles.badgeTxt}>{activeFilterCount}</Text></View>
           )}
         </TouchableOpacity>
 
@@ -342,28 +485,7 @@ export default function HomeScreen() {
       </View>
 
       {/* ── Category Tab Bar ──────────────────────────────────────────── */}
-      <View style={styles.catBarWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catBarContent}
-        >
-          {CATS.map(({ key, label, icon }) => {
-            const active = activeCat === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[styles.catTab, active && styles.catTabActive]}
-                onPress={() => handleCatChange(key)}
-                activeOpacity={0.75}
-              >
-                <Icon name={icon} size={14} color={active ? C.red : C.grey} />
-                <Text style={[styles.catTabLabel, active && styles.catTabLabelActive]}>{label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+      <CategoryTabBar activeCat={activeCat} onSelect={handleCatChange} />
 
       {/* ── Search suggestions ────────────────────────────────────────── */}
       {searchFocused && suggestions.length > 0 && (
@@ -394,7 +516,7 @@ export default function HomeScreen() {
       {/* ── Content (swipeable) ───────────────────────────────────────── */}
       <View style={{ flex: 1 }} {...(activeTab === 'home' ? panResponder.panHandlers : {})}>
         {activeTab === 'home' && (
-          <>
+          <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideAnim }] }]}>
             {loading && deals.length === 0 ? (
               <FlatList
                 data={[1, 2, 3, 4, 5, 6]}
@@ -437,7 +559,7 @@ export default function HomeScreen() {
                 }
               />
             )}
-          </>
+          </Animated.View>
         )}
 
         {activeTab === 'favorites' && (
@@ -456,52 +578,33 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* ── Bottom Tab Bar (flat, 3 equal sections with separators) ───── */}
+      {/* ── Bottom Tab Bar ────────────────────────────────────────────── */}
       <View style={styles.tabBar}>
-        <TabBtn
-          icon="favorite-border" iconActive="favorite"
-          label="Favorieten"
-          active={activeTab === 'favorites'}
-          badge={favorites.size > 0 ? favorites.size : null}
-          onPress={() => setActiveTab('favorites')}
-        />
+        <TabBtn icon="favorite-border" iconActive="favorite" label="Favorieten"
+          active={activeTab === 'favorites'} badge={favorites.size > 0 ? favorites.size : null}
+          onPress={() => setActiveTab('favorites')} />
         <View style={styles.tabSep} />
-        <TabBtn
-          icon="home" iconActive="home"
-          label="Home"
-          active={activeTab === 'home'}
-          onPress={() => setActiveTab('home')}
-        />
+        <TabBtn icon="home" iconActive="home" label="Home"
+          active={activeTab === 'home'} onPress={() => setActiveTab('home')} />
         <View style={styles.tabSep} />
-        <TabBtn
-          icon="card-giftcard" iconActive="card-giftcard"
-          label="Rewards"
-          active={activeTab === 'rewards'}
-          onPress={() => setActiveTab('rewards')}
-        />
+        <TabBtn icon="card-giftcard" iconActive="card-giftcard" label="Rewards"
+          active={activeTab === 'rewards'} onPress={() => setActiveTab('rewards')} />
       </View>
 
       {/* ── Modals ────────────────────────────────────────────────────── */}
       <DealModal
-        deal={selectedDeal}
-        visible={!!selectedDeal}
-        onClose={() => setSelectedDeal(null)}
+        deal={selectedDeal} visible={!!selectedDeal} onClose={() => setSelectedDeal(null)}
         isFavorited={selectedDeal ? favorites.has(selectedDeal.id) : false}
         onFavorite={() => selectedDeal && toggleFavorite(selectedDeal.id)}
         t={t}
       />
 
       <FilterPanel
-        visible={filterVisible}
-        onClose={() => setFilterVisible(false)}
-        activeDisc={activeDisc}
-        setActiveDisc={setActiveDisc}
-        minPrice={minPrice}
-        setMinPrice={setMinPrice}
-        maxPrice={maxPrice}
-        setMaxPrice={setMaxPrice}
-        onApply={applyFilters}
-        onReset={handleFilterReset}
+        visible={filterVisible} onClose={() => setFilterVisible(false)}
+        activeDisc={activeDisc} setActiveDisc={setActiveDisc}
+        minPrice={minPrice} setMinPrice={setMinPrice}
+        maxPrice={maxPrice} setMaxPrice={setMaxPrice}
+        onApply={applyFilters} onReset={handleFilterReset}
       />
 
       <MenuDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
@@ -511,7 +614,7 @@ export default function HomeScreen() {
   );
 }
 
-/* ── Premium Home Header ─────────────────────────────────────────────── */
+/* ── Featured Deal Header ────────────────────────────────────────────── */
 
 function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorite, t }) {
   if (!featuredDeal) return null;
@@ -527,7 +630,14 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
 
         <TouchableOpacity style={styles.featuredCard} onPress={() => onDealPress(featuredDeal)} activeOpacity={0.93}>
           <Image source={{ uri: featuredDeal.image }} style={styles.featuredImage} resizeMode="cover" />
-          <View style={styles.featuredOverlay}>
+
+          {/* Gradient overlay — CSS gradient on web so no solid block */}
+          <View
+            style={[
+              styles.featuredOverlay,
+              Platform.OS === 'web' && { background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.82) 100%)', backgroundColor: undefined },
+            ]}
+          >
             <View style={[styles.featuredStoreBadge, { backgroundColor: store.color }]}>
               <Text style={styles.featuredStoreTxt}>{store.name}</Text>
             </View>
@@ -540,6 +650,7 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
               </View>
             </View>
           </View>
+
           <TouchableOpacity
             style={styles.featuredHeart}
             onPress={() => onFavorite(featuredDeal.id)}
@@ -567,7 +678,7 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
 function TabBtn({ icon, iconActive, label, active, badge, onPress }) {
   return (
     <TouchableOpacity style={styles.tabBtn} onPress={onPress} activeOpacity={0.8}>
-      <View style={[styles.tabBtnInner, active && styles.tabBtnInnerActive]}>
+      <View style={styles.tabBtnInner}>
         <View style={{ position: 'relative' }}>
           <Icon name={active ? iconActive : icon} size={20} color={active ? C.red : C.grey} />
           {badge != null && (
@@ -587,125 +698,66 @@ function TabBtn({ icon, iconActive, label, active, badge, onPress }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.lightGrey },
 
-  // Top bar — light grey
+  // Top bar
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#F5F5F7',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-    zIndex: 10,
+    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 2, zIndex: 10,
   },
   iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: R.md,
+    width: 38, height: 38, borderRadius: R.md,
     backgroundColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    justifyContent: 'center', alignItems: 'center', position: 'relative',
   },
   badge: {
-    position: 'absolute',
-    top: -4, right: -4,
+    position: 'absolute', top: -4, right: -4,
     width: 16, height: 16, borderRadius: 8,
-    backgroundColor: C.red,
-    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
   },
   badgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
   brandMark: {
     width: 34, height: 34, borderRadius: 10,
     backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
   },
-  brandMarkTxt: {
-    color: C.white,
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontWeight: '800', fontSize: 11,
-  },
+  brandMarkTxt: { color: C.white, fontFamily: 'Open Sans, system-ui, sans-serif', fontWeight: '800', fontSize: 11 },
   searchWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.white,
-    borderRadius: R.full,
-    paddingHorizontal: 12,
-    height: 38,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    gap: 6,
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.white, borderRadius: R.full,
+    paddingHorizontal: 12, height: 38,
+    borderWidth: 1.5, borderColor: C.border, gap: 6,
   },
   searchWrapFocused: { borderColor: C.red },
   searchInput: {
-    flex: 1,
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13, color: C.dark,
-    outlineStyle: 'none', height: '100%',
+    flex: 1, fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontSize: 13, color: C.dark, outlineStyle: 'none', height: '100%',
   },
-
-  // Category tab bar
-  catBarWrap: {
-    backgroundColor: C.white,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  catBarContent: { paddingHorizontal: 8, paddingVertical: 0 },
-  catTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  catTabActive: { borderBottomColor: C.red },
-  catTabLabel: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13, fontWeight: '500', color: C.grey,
-  },
-  catTabLabelActive: { color: C.red, fontWeight: '700' },
 
   // Suggestions
   suggestions: {
-    position: 'absolute',
-    top: 112, left: 8, right: 8,
-    backgroundColor: C.white,
-    borderRadius: R.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 12,
-    elevation: 20, zIndex: 999, overflow: 'hidden',
+    position: 'absolute', top: 112, left: 8, right: 8,
+    backgroundColor: C.white, borderRadius: R.lg,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 20, zIndex: 999, overflow: 'hidden',
   },
   suggestion: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: C.lightGrey, gap: 10,
   },
-  suggestionTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '600', color: C.dark,
-  },
-  suggestionPrice: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 1,
-  },
+  suggestionTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '600', color: C.dark },
+  suggestionPrice: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 1 },
 
-  // List
+  // Deal list
   list: { paddingBottom: 20 },
   row:  { alignItems: 'stretch' },
 
   // Featured Deal
   featuredWrap: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 4 },
   featuredLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
-  featuredLabel: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.red, letterSpacing: 1,
-  },
+  featuredLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.red, letterSpacing: 1 },
   featuredCard: {
     borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.dark,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 6,
@@ -713,60 +765,46 @@ const styles = StyleSheet.create({
   featuredImage: { width: '100%', height: 200 },
   featuredOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 16, paddingTop: 40,
-    backgroundColor: 'rgba(0,0,0,0.52)',
+    padding: 16, paddingTop: 64,
+    // backgroundColor set inline per platform (gradient on web, solid fallback on native)
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   featuredStoreBadge: {
     alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: R.full, marginBottom: 6,
   },
   featuredStoreTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.white },
-  featuredTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 16, fontWeight: '700', color: C.white, lineHeight: 22, marginBottom: 8,
-  },
+  featuredTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 16, fontWeight: '700', color: C.white, lineHeight: 22, marginBottom: 8 },
   featuredPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   featuredPrice: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 24, fontWeight: '800', color: C.white },
-  featuredOrig: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.6)', textDecorationLine: 'line-through', flex: 1,
-  },
+  featuredOrig: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.6)', textDecorationLine: 'line-through', flex: 1 },
   featuredDiscount: { backgroundColor: C.red, paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.full },
   featuredDiscountTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, fontWeight: '800', color: C.white },
   featuredHeart: {
     position: 'absolute', top: 12, right: 12,
     width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center',
   },
 
-  // Section headers
+  // Section header
   sectionHeaderRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8, gap: 6,
   },
-  sectionTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '700', color: C.dark, flex: 1,
-  },
+  sectionTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '700', color: C.dark, flex: 1 },
   sectionCount: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey, fontWeight: '500' },
 
-  // Bottom tab bar — flat, 3 equal sections
+  // Bottom tab bar
   tabBar: {
-    flexDirection: 'row',
-    backgroundColor: C.white,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    paddingBottom: Platform.OS === 'ios' ? 18 : 4,
-    paddingTop: 4,
+    flexDirection: 'row', backgroundColor: C.white,
+    borderTopWidth: 1, borderTopColor: C.border,
+    paddingBottom: Platform.OS === 'ios' ? 18 : 4, paddingTop: 4,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 8,
   },
   tabSep: { width: 1, height: 28, backgroundColor: C.border },
   tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 6 },
   tabBtnInner: { alignItems: 'center', gap: 2 },
-  tabBtnInnerActive: {},
-  tabLabel: {
-    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey, fontWeight: '500',
-  },
+  tabLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey, fontWeight: '500' },
   tabLabelActive: { color: C.red, fontWeight: '700' },
   tabBadge: {
     position: 'absolute', top: -4, right: -6,
@@ -777,8 +815,7 @@ const styles = StyleSheet.create({
 
   // Streak toast
   streakToast: {
-    position: 'absolute', top: 120,
-    left: 12, right: 12, zIndex: 100,
+    position: 'absolute', top: 120, left: 12, right: 12, zIndex: 100,
     backgroundColor: C.dark, borderRadius: R.lg,
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 12, gap: 12,
