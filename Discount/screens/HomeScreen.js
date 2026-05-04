@@ -9,7 +9,7 @@ import Icon from '../components/Icon';
 import BrandMark from '../components/BrandMark';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const logoHorizontal = require('../assets/logo-horizontal.png');
+import { LOGO_HORIZONTAL_URI } from '../components/logos';
 
 import DealCard from '../components/DealCard';
 import DealModal from '../components/DealModal';
@@ -490,7 +490,7 @@ export default function HomeScreen() {
           {/* Brand — standalone mark on mobile, full horizontal logo on desktop */}
           <View style={styles.brand}>
             {isDesktop
-              ? <Image source={logoHorizontal} style={styles.brandLogoDesktop} resizeMode="contain" />
+              ? <Image source={{ uri: LOGO_HORIZONTAL_URI }} style={styles.brandLogoDesktop} resizeMode="contain" />
               : <BrandMark size={36} />
             }
           </View>

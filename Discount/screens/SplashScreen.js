@@ -2,9 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
-
-// Stacked logo — mark + "Donnie / Discount" two-line layout
-const stackedLogo = require('../assets/logo-stacked.png');
+import { LOGO_STACKED_URI } from '../components/logos';
 
 const isDesktop = Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth >= 1024;
 
@@ -49,7 +47,7 @@ export default function SplashScreen({ navigation }) {
     <View style={styles.container}>
       <Animated.View style={[styles.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         {/* Stacked logo PNG — exact brand asset */}
-        <Image source={stackedLogo} style={styles.logo} resizeMode="contain" />
+        <Image source={{ uri: LOGO_STACKED_URI }} style={styles.logo} resizeMode="contain" />
         <Text style={styles.tagline}>Extreme kortingen. Elke dag.</Text>
       </Animated.View>
     </View>
