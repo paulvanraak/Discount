@@ -15,24 +15,19 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
-        working-directory: Discount
         run: npm install
 
-      - name: Export Expo web build
-        working-directory: Discount
-        run: npx expo export --platform web
+      - name: Build Vite app
+        run: npm run build
 
-      - name: Fix asset paths for GitHub Pages sub-path
-        working-directory: Discount/dist
-        run: |
-          sed -i 's|"/_expo/|"/Discount/_expo/|g' index.html
-          sed -i "s|'/_expo/|'/Discount/_expo/|g" index.html
+      - name: Copy index.html → 404.html (SPA routing on GitHub Pages)
+        run: cp dist/index.html dist/404.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: Discount/dist
+          publish_dir: dist

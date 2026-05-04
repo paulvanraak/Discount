@@ -9,7 +9,7 @@ import { CompareProvider } from './context/CompareContext'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/Discount/">
       <CompareProvider>
         <div className="min-h-screen flex flex-col">
           <Header />
