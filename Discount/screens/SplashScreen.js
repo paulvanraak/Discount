@@ -1,15 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
-import BrandMark from '../components/BrandMark';
+
+// Stacked logo — mark + "Donnie / Discount" two-line layout
+const stackedLogo = require('../assets/logo-stacked.png');
 
 const isDesktop = Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth >= 1024;
 
 export default function SplashScreen({ navigation }) {
   const { setLang, setRegion } = useLanguage();
   const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
     const navigate = async () => {
@@ -28,12 +30,10 @@ export default function SplashScreen({ navigation }) {
     };
 
     if (isDesktop) {
-      // Skip splash entirely on desktop — navigate on next tick
       const t = setTimeout(navigate, 0);
       return () => clearTimeout(t);
     }
 
-    // Mobile / tablet: animate in then navigate after 1800ms
     Animated.parallel([
       Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
@@ -47,12 +47,9 @@ export default function SplashScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.logoWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <BrandMark size={96} />
-        <View style={styles.textWrap}>
-          <Text style={styles.line1}>Donnie</Text>
-          <Text style={styles.line2}>Discount</Text>
-        </View>
+      <Animated.View style={[styles.inner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        {/* Stacked logo PNG — exact brand asset */}
+        <Image source={stackedLogo} style={styles.logo} resizeMode="contain" />
         <Text style={styles.tagline}>Extreme kortingen. Elke dag.</Text>
       </Animated.View>
     </View>
@@ -66,35 +63,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoWrap: {
+  inner: {
     alignItems: 'center',
-    gap: 0,
+    paddingHorizontal: 32,
+    width: '100%',
   },
-  textWrap: {
-    alignItems: 'center',
-    marginTop: 20,
-    gap: 0,
-  },
-  line1: {
-    fontFamily: 'Nunito, "Open Sans", system-ui, sans-serif',
-    fontSize: 52,
-    fontWeight: '900',
-    color: '#111111',
-    lineHeight: 58,
-  },
-  line2: {
-    fontFamily: 'Nunito, "Open Sans", system-ui, sans-serif',
-    fontSize: 52,
-    fontWeight: '900',
-    color: '#111111',
-    lineHeight: 56,
+  // 2558×829 → ratio 3.09
+  logo: {
+    width: '80%',
+    aspectRatio: 2558 / 829,
+    marginBottom: 24,
   },
   tagline: {
     fontFamily: '"Open Sans", system-ui, sans-serif',
     fontSize: 14,
     fontWeight: '500',
     color: '#8A9BAD',
-    marginTop: 20,
     letterSpacing: 0.3,
   },
 });

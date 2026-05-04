@@ -8,6 +8,9 @@ import {
 import Icon from '../components/Icon';
 import BrandMark from '../components/BrandMark';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const logoHorizontal = require('../assets/logo-horizontal.png');
+
 import DealCard from '../components/DealCard';
 import DealModal from '../components/DealModal';
 import FilterPanel from '../components/FilterPanel';
@@ -484,10 +487,12 @@ export default function HomeScreen() {
       <View style={styles.topBarOuter}>
         <View style={[styles.topBarInner, isDesktop && styles.topBarInnerDesktop]}>
 
-          {/* Brand — always visible; on desktop shows full name */}
+          {/* Brand — standalone mark on mobile, full horizontal logo on desktop */}
           <View style={styles.brand}>
-            <BrandMark size={36} />
-            {isDesktop && <Text style={styles.brandName}>Donnie Discount</Text>}
+            {isDesktop
+              ? <Image source={logoHorizontal} style={styles.brandLogoDesktop} resizeMode="contain" />
+              : <BrandMark size={36} />
+            }
           </View>
 
           {/* Filter button — mobile/tablet left side */}
@@ -804,8 +809,9 @@ const styles = StyleSheet.create({
   },
 
   // Brand
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandName: { fontFamily: 'Nunito, "Open Sans", system-ui, sans-serif', fontSize: 17, fontWeight: '900', color: '#111111' },
+  brand: { flexDirection: 'row', alignItems: 'center' },
+  // 3106×523 → ratio 5.94; height 32px → width ≈ 190px
+  brandLogoDesktop: { height: 32, width: 190 },
 
   // Icon button (filter, menu)
   iconBtn: {

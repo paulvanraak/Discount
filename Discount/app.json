@@ -25,7 +25,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/icon.png",
+      "favicon": "./assets/logo-mark.png",
       "name": "Donnie Discount",
       "shortName": "Donnie",
       "description": "Extreme kortingen. Elke dag.",
