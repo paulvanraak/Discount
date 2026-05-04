@@ -25,9 +25,14 @@ jobs:
         working-directory: Discount
         run: npx expo export --platform web
 
+      - name: Fix asset paths for GitHub Pages sub-path
+        working-directory: Discount/dist
+        run: |
+          sed -i 's|"/_expo/|"/Discount/_expo/|g' index.html
+          sed -i "s|'/_expo/|'/Discount/_expo/|g" index.html
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: Discount/dist
-          cname: donniediscount.com

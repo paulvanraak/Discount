@@ -48,8 +48,8 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   addMeta({ property: 'og:type',          content: 'website' });
   addMeta({ property: 'og:title',         content: 'Donnie Discount — Extreme kortingen. Elke dag.' });
   addMeta({ property: 'og:description',   content: 'Elke dag nieuwe deals. Tot 80% korting op tech, fashion, keuken en meer.' });
-  addMeta({ property: 'og:url',           content: 'https://donniediscount.com/' });
-  addMeta({ property: 'og:image',         content: 'https://donniediscount.com/og-image.png' });
+  addMeta({ property: 'og:url',           content: 'https://paulvanraak.github.io/Discount/' });
+  addMeta({ property: 'og:image',         content: 'https://paulvanraak.github.io/Discount/og-image.png' });
   addMeta({ property: 'og:locale',        content: 'nl_NL' });
   addMeta({ name: 'twitter:card',         content: 'summary_large_image' });
   addMeta({ name: 'twitter:title',        content: 'Donnie Discount — Extreme kortingen' });
