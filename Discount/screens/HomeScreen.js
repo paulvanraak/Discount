@@ -39,7 +39,7 @@ export const CATS = [
    Animated category tab bar
 ───────────────────────────────────────────────────────────────────── */
 
-function CategoryTabBar({ activeCat, onSelect, isDesktop }) {
+function CategoryTabBar({ activeCat, onSelect, isDesktop, onFilter, activeFilterCount = 0 }) {
   const scrollRef  = useRef(null);
   const tabLayouts = useRef({});
   const indicatorX = useRef(new Animated.Value(0)).current;
@@ -66,42 +66,55 @@ function CategoryTabBar({ activeCat, onSelect, isDesktop }) {
 
   return (
     <View style={tabBarStyles.wrap}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={tabBarStyles.content}
-      >
-        {/* Inner row with animated indicator at bottom */}
-        <View style={{ flexDirection: 'row', position: 'relative', paddingBottom: 2 }}>
-          {CATS.map(({ key, label, icon }) => {
-            const active = activeCat === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={tabBarStyles.tab}
-                onPress={() => onSelect(key)}
-                onLayout={e => {
-                  const { x, width } = e.nativeEvent.layout;
-                  tabLayouts.current[key] = { x, width };
-                  if (key === activeCat) moveIndicator(key, false);
-                }}
-                activeOpacity={0.75}
-              >
-                <Icon name={icon} size={14} color={active ? C.red : C.grey} />
-                <Text style={[tabBarStyles.label, active && tabBarStyles.labelActive]}>{label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-          <Animated.View style={[tabBarStyles.indicator, { left: indicatorX, width: indicatorW }]} />
-        </View>
-      </ScrollView>
+      {/* Scrollable tabs area */}
+      <View style={tabBarStyles.scrollArea}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={tabBarStyles.content}
+        >
+          {/* Inner row with animated indicator at bottom */}
+          <View style={{ flexDirection: 'row', position: 'relative', paddingBottom: 2 }}>
+            {CATS.map(({ key, label, icon }) => {
+              const active = activeCat === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={tabBarStyles.tab}
+                  onPress={() => onSelect(key)}
+                  onLayout={e => {
+                    const { x, width } = e.nativeEvent.layout;
+                    tabLayouts.current[key] = { x, width };
+                    if (key === activeCat) moveIndicator(key, false);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Icon name={icon} size={14} color={active ? C.red : C.grey} />
+                  <Text style={[tabBarStyles.label, active && tabBarStyles.labelActive]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <Animated.View style={[tabBarStyles.indicator, { left: indicatorX, width: indicatorW }]} />
+          </View>
+        </ScrollView>
 
-      {/* Arrow hint — hidden on desktop (all tabs visible) */}
-      {!isDesktop && (
-        <View style={tabBarStyles.arrowWrap} pointerEvents="none">
-          <Icon name="chevron-right" size={16} color={C.grey} />
-        </View>
+        {/* Arrow hint — mobile only */}
+        {!isDesktop && (
+          <View style={tabBarStyles.arrowWrap} pointerEvents="none">
+            <Icon name="chevron-right" size={16} color={C.grey} />
+          </View>
+        )}
+      </View>
+
+      {/* Filter button — desktop: right of tabs, always visible */}
+      {isDesktop && (
+        <TouchableOpacity style={tabBarStyles.filterBtn} onPress={onFilter} activeOpacity={0.75}>
+          <Icon name="tune" size={18} color={activeFilterCount > 0 ? C.red : C.grey} />
+          {activeFilterCount > 0 && (
+            <Text style={tabBarStyles.filterCount}>{activeFilterCount}</Text>
+          )}
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -109,11 +122,12 @@ function CategoryTabBar({ activeCat, onSelect, isDesktop }) {
 
 const tabBarStyles = StyleSheet.create({
   wrap: {
+    flexDirection: 'row',
     backgroundColor: C.white,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
-    overflow: 'hidden',
   },
+  scrollArea: { flex: 1, overflow: 'hidden', position: 'relative' },
   content: { paddingHorizontal: 4 },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -128,6 +142,15 @@ const tabBarStyles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? { background: 'linear-gradient(to right, transparent, white 60%)' }
       : { backgroundColor: 'rgba(255,255,255,0.9)' }),
+  },
+  filterBtn: {
+    width: 52, borderLeftWidth: 1, borderLeftColor: C.border,
+    justifyContent: 'center', alignItems: 'center', gap: 2,
+    backgroundColor: C.white,
+  },
+  filterCount: {
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontSize: 10, fontWeight: '800', color: C.red,
   },
 });
 
@@ -519,16 +542,6 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Filter button on desktop (right side) */}
-          {isDesktop && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
-              <Icon name="tune" size={20} color={C.dark} />
-              {activeFilterCount > 0 && (
-                <View style={styles.badge}><Text style={styles.badgeTxt}>{activeFilterCount}</Text></View>
-              )}
-            </TouchableOpacity>
-          )}
-
           {/* Menu always visible */}
           <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
             <Icon name="menu" size={20} color={C.dark} />
@@ -537,7 +550,13 @@ export default function HomeScreen() {
       </View>
 
       {/* ── Category Tab Bar ─────────────────────────────────────────── */}
-      <CategoryTabBar activeCat={activeCat} onSelect={handleCatChange} isDesktop={isDesktop} />
+      <CategoryTabBar
+        activeCat={activeCat}
+        onSelect={handleCatChange}
+        isDesktop={isDesktop}
+        onFilter={() => setFilterVisible(true)}
+        activeFilterCount={activeFilterCount}
+      />
 
       {/* ── Search suggestions ────────────────────────────────────────── */}
       {searchFocused && suggestions.length > 0 && (
