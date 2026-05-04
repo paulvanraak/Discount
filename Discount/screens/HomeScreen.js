@@ -2,7 +2,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   RefreshControl, TouchableOpacity, TextInput,
-  Platform, Image, Animated, ScrollView, PanResponder, Dimensions,
+  Platform, Image, Animated, ScrollView, PanResponder,
+  Dimensions, useWindowDimensions,
 } from 'react-native';
 import Icon from '../components/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,13 +34,15 @@ export const CATS = [
   { key: 'garden',  label: 'Tuin',        icon: 'yard' },
 ];
 
-/* ── Animated category tab bar ───────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────
+   Animated category tab bar
+───────────────────────────────────────────────────────────────────── */
 
-function CategoryTabBar({ activeCat, onSelect }) {
-  const scrollRef   = useRef(null);
-  const tabLayouts  = useRef({});
-  const indicatorX  = useRef(new Animated.Value(0)).current;
-  const indicatorW  = useRef(new Animated.Value(40)).current;
+function CategoryTabBar({ activeCat, onSelect, isDesktop }) {
+  const scrollRef  = useRef(null);
+  const tabLayouts = useRef({});
+  const indicatorX = useRef(new Animated.Value(0)).current;
+  const indicatorW = useRef(new Animated.Value(40)).current;
 
   const moveIndicator = (key, animate) => {
     const layout = tabLayouts.current[key];
@@ -53,7 +56,6 @@ function CategoryTabBar({ activeCat, onSelect }) {
       indicatorX.setValue(layout.x);
       indicatorW.setValue(layout.width);
     }
-    // Auto-scroll the active tab into view
     if (scrollRef.current && layout) {
       scrollRef.current.scrollTo({ x: Math.max(0, layout.x - 80), animated: animate });
     }
@@ -62,21 +64,21 @@ function CategoryTabBar({ activeCat, onSelect }) {
   useEffect(() => { moveIndicator(activeCat, true); }, [activeCat]);
 
   return (
-    <View style={tabStyles.wrap}>
+    <View style={tabBarStyles.wrap}>
       <ScrollView
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={tabStyles.content}
+        contentContainerStyle={tabBarStyles.content}
       >
-        {/* Row of tabs + animated underline indicator */}
+        {/* Inner row with animated indicator at bottom */}
         <View style={{ flexDirection: 'row', position: 'relative', paddingBottom: 2 }}>
           {CATS.map(({ key, label, icon }) => {
             const active = activeCat === key;
             return (
               <TouchableOpacity
                 key={key}
-                style={tabStyles.tab}
+                style={tabBarStyles.tab}
                 onPress={() => onSelect(key)}
                 onLayout={e => {
                   const { x, width } = e.nativeEvent.layout;
@@ -86,85 +88,115 @@ function CategoryTabBar({ activeCat, onSelect }) {
                 activeOpacity={0.75}
               >
                 <Icon name={icon} size={14} color={active ? C.red : C.grey} />
-                <Text style={[tabStyles.label, active && tabStyles.labelActive]}>{label}</Text>
+                <Text style={[tabBarStyles.label, active && tabBarStyles.labelActive]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
-
-          {/* Animated red underline — moves with active tab */}
-          <Animated.View
-            style={[tabStyles.indicator, { left: indicatorX, width: indicatorW }]}
-          />
+          <Animated.View style={[tabBarStyles.indicator, { left: indicatorX, width: indicatorW }]} />
         </View>
       </ScrollView>
 
-      {/* Right-edge gradient + chevron hint */}
-      <View style={tabStyles.arrowWrap} pointerEvents="none">
-        <Icon name="chevron-right" size={16} color={C.grey} />
-      </View>
+      {/* Arrow hint — hidden on desktop (all tabs visible) */}
+      {!isDesktop && (
+        <View style={tabBarStyles.arrowWrap} pointerEvents="none">
+          <Icon name="chevron-right" size={16} color={C.grey} />
+        </View>
+      )}
     </View>
   );
 }
 
-const tabStyles = StyleSheet.create({
+const tabBarStyles = StyleSheet.create({
   wrap: {
     backgroundColor: C.white,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     overflow: 'hidden',
-    position: 'relative',
   },
   content: { paddingHorizontal: 4 },
   tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 10,
   },
-  label: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13, fontWeight: '500', color: C.grey,
-  },
+  label: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '500', color: C.grey },
   labelActive: { color: C.red, fontWeight: '700' },
-  indicator: {
-    position: 'absolute',
-    bottom: 0,
-    height: 2,
-    backgroundColor: C.red,
-    borderRadius: 1,
-  },
+  indicator: { position: 'absolute', bottom: 0, height: 2, backgroundColor: C.red, borderRadius: 1 },
   arrowWrap: {
-    position: 'absolute',
-    right: 0, top: 0, bottom: 0,
-    width: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    // fade on web
-    ...(Platform.OS === 'web' ? { background: 'linear-gradient(to right, transparent, white 60%)' } : { backgroundColor: 'rgba(255,255,255,0.9)' }),
+    position: 'absolute', right: 0, top: 0, bottom: 0, width: 32,
+    justifyContent: 'center', alignItems: 'center',
+    ...(Platform.OS === 'web'
+      ? { background: 'linear-gradient(to right, transparent, white 60%)' }
+      : { backgroundColor: 'rgba(255,255,255,0.9)' }),
   },
 });
 
-/* ── HomeScreen ──────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────
+   Desktop nav button (replaces bottom tab on ≥ 1024 px)
+───────────────────────────────────────────────────────────────────── */
+
+function DesktopNavBtn({ icon, iconActive, label, active, badge, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[deskStyles.navBtn, active && deskStyles.navBtnActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Icon name={active ? iconActive : icon} size={18} color={active ? C.red : C.grey} />
+      <Text style={[deskStyles.navLabel, active && deskStyles.navLabelActive]}>{label}</Text>
+      {badge != null && (
+        <View style={deskStyles.navBadge}>
+          <Text style={deskStyles.navBadgeTxt}>{badge > 9 ? '9+' : badge}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+const deskStyles = StyleSheet.create({
+  navBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.md,
+    position: 'relative',
+  },
+  navBtnActive: { backgroundColor: C.red + '12' },
+  navLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '600', color: C.grey },
+  navLabelActive: { color: C.red, fontWeight: '700' },
+  navBadge: {
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4,
+  },
+  navBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
+});
+
+/* ─────────────────────────────────────────────────────────────────────
+   HomeScreen
+───────────────────────────────────────────────────────────────────── */
 
 export default function HomeScreen() {
   const { t, region } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState('home');
-  const [allDeals, setAllDeals]   = useState([]);
-  const [deals, setDeals]         = useState([]);
-  const [page, setPage]           = useState(1);
-  const [loading, setLoading]     = useState(true);
+  // Responsive breakpoints — updates live on window resize
+  const { width } = useWindowDimensions();
+  const isTablet  = width >= 768;
+  const isDesktop = width >= 1024;
+  const numCols   = isDesktop ? 4 : isTablet ? 3 : 2;
+  const featH     = isDesktop ? 300 : isTablet ? 240 : 200;
+
+  const [activeTab, setActiveTab]   = useState('home');
+  const [allDeals, setAllDeals]     = useState([]);
+  const [deals, setDeals]           = useState([]);
+  const [page, setPage]             = useState(1);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const [activeCat,  setActiveCat]  = useState('all');
-  const [activeDisc, setActiveDisc] = useState(null);   // number | null
+  const [activeDisc, setActiveDisc] = useState(null);
   const [minPrice,   setMinPrice]   = useState('');
   const [maxPrice,   setMaxPrice]   = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
 
-  const [query, setQuery]           = useState('');
-  const [suggestions, setSuggestions] = useState([]);
+  const [query, setQuery]               = useState('');
+  const [suggestions, setSuggestions]   = useState([]);
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef(null);
 
@@ -172,20 +204,19 @@ export default function HomeScreen() {
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [favorites, setFavorites]       = useState(new Set());
 
-  const [points, setPoints]   = useState(0);
-  const [streak, setStreak]   = useState(1);
-  const [clicks, setClicks]   = useState(0);
+  const [points, setPoints]     = useState(0);
+  const [streak, setStreak]     = useState(1);
+  const [clicks, setClicks]     = useState(0);
   const [favCount, setFavCount] = useState(0);
   const [streakToast, setStreakToast] = useState(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
   // Slide animation for category transitions
-  const slideAnim      = useRef(new Animated.Value(0)).current;
-  const catChangeDirRef = useRef(0);   // -1 = left, +1 = right, 0 = initial
-  const activeCatRef   = useRef(activeCat);
+  const slideAnim       = useRef(new Animated.Value(0)).current;
+  const catChangeDirRef = useRef(0);
+  const activeCatRef    = useRef(activeCat);
   useEffect(() => { activeCatRef.current = activeCat; }, [activeCat]);
 
-  // Trigger slide-in when activeCat changes
   useEffect(() => {
     const dir = catChangeDirRef.current;
     if (dir === 0) return;
@@ -195,7 +226,7 @@ export default function HomeScreen() {
     Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 14 }).start();
   }, [activeCat]);
 
-  /* ── Data loading ──────────────────────────────────────────────────── */
+  /* ── Data ───────────────────────────────────────────────────────── */
 
   useEffect(() => {
     loadPersistedFilters();
@@ -242,15 +273,12 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // Category tab/swipe change — sets direction then triggers effect via setActiveCat
   const handleCatChange = useCallback((cat) => {
     if (cat === activeCatRef.current) return;
     if (catChangeDirRef.current === 0) {
-      // Tap (not swipe — swipe sets direction before calling this)
       const keys = CATS.map(c => c.key);
-      const oldIdx = keys.indexOf(activeCatRef.current);
-      const newIdx = keys.indexOf(cat);
-      catChangeDirRef.current = newIdx > oldIdx ? 1 : -1;
+      const diff = keys.indexOf(cat) - keys.indexOf(activeCatRef.current);
+      catChangeDirRef.current = diff > 0 ? 1 : -1;
     }
     setActiveCat(cat);
     setLoading(true);
@@ -297,7 +325,7 @@ export default function HomeScreen() {
     setPage(next);
   };
 
-  /* ── Search ────────────────────────────────────────────────────────── */
+  /* ── Search ─────────────────────────────────────────────────────── */
 
   const handleQueryChange = (text) => {
     setQuery(text);
@@ -305,23 +333,17 @@ export default function HomeScreen() {
     const q = text.toLowerCase();
     setSuggestions(mockDeals.filter(d => d.title.toLowerCase().includes(q)).slice(0, 5));
   };
-
   const handleSuggestionTap = (deal) => {
-    setQuery(deal.title);
-    setSuggestions([]);
-    setSearchFocused(false);
-    setSelectedDeal(deal);
-    addClick();
+    setQuery(deal.title); setSuggestions([]); setSearchFocused(false);
+    setSelectedDeal(deal); addClick();
   };
-
   const handleSearchSubmit = () => {
-    setSuggestions([]);
-    setSearchFocused(false);
+    setSuggestions([]); setSearchFocused(false);
     setLoading(true);
     loadDeals(activeCat, activeDisc, minPrice, maxPrice, query);
   };
 
-  /* ── Favorites ─────────────────────────────────────────────────────── */
+  /* ── Favorites ──────────────────────────────────────────────────── */
 
   const loadFavorites = async () => {
     try {
@@ -329,7 +351,6 @@ export default function HomeScreen() {
       if (stored) setFavorites(new Set(JSON.parse(stored)));
     } catch {}
   };
-
   const toggleFavorite = async (dealId) => {
     const next = new Set(favorites);
     if (next.has(dealId)) {
@@ -345,7 +366,7 @@ export default function HomeScreen() {
     await AsyncStorage.setItem('dd_favorites', JSON.stringify([...next]));
   };
 
-  /* ── Rewards ───────────────────────────────────────────────────────── */
+  /* ── Rewards ────────────────────────────────────────────────────── */
 
   const initRewards = async () => {
     try {
@@ -374,16 +395,11 @@ export default function HomeScreen() {
             Animated.delay(3200),
             Animated.timing(toastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
           ]).start(() => setStreakToast(null));
-          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-          }
         }
       } else {
         setPoints(p);
       }
-      setClicks(c);
-      setFavCount(f);
-      setStreak(s);
+      setClicks(c); setFavCount(f); setStreak(s);
     } catch {}
   };
 
@@ -392,7 +408,6 @@ export default function HomeScreen() {
     setPoints(next);
     await AsyncStorage.setItem('dd_points', String(next));
   };
-
   const addClick = async () => {
     const next = clicks + 1;
     setClicks(next);
@@ -401,91 +416,129 @@ export default function HomeScreen() {
   };
 
   const handleDealPress = (deal) => {
-    setSelectedDeal(deal);
-    addClick();
-    trackDealClick(deal);
-    recordClick(deal.id, region);
+    setSelectedDeal(deal); addClick();
+    trackDealClick(deal); recordClick(deal.id, region);
   };
-
   const handleFavoriteWithTracking = async (dealId) => {
     const deal = allDeals.find(d => d.id === dealId);
     await toggleFavorite(dealId);
     if (deal && !favorites.has(dealId)) trackAddToWishlist(deal);
   };
 
-  /* ── Swipe gesture (PanResponder) ──────────────────────────────────── */
+  /* ── Swipe (mobile/tablet only) ─────────────────────────────────── */
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 15 && Math.abs(gs.dy) < 25,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 15 && Math.abs(gs.dy) < 25,
       onPanResponderRelease: (_, gs) => {
         if (Math.abs(gs.dx) < 50) return;
         const keys = CATS.map(c => c.key);
         const idx  = keys.indexOf(activeCatRef.current);
         if (gs.dx < 0 && idx < keys.length - 1) {
-          catChangeDirRef.current = 1;   // swipe left → next category, content slides from right
+          catChangeDirRef.current = 1;
           handleCatChangeRef.current(keys[idx + 1]);
         } else if (gs.dx > 0 && idx > 0) {
-          catChangeDirRef.current = -1;  // swipe right → prev category, content slides from left
+          catChangeDirRef.current = -1;
           handleCatChangeRef.current(keys[idx - 1]);
         }
       },
     })
   ).current;
 
-  /* ── Derived ───────────────────────────────────────────────────────── */
+  /* ── Derived ────────────────────────────────────────────────────── */
 
   const activeFilterCount = [activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
   const featuredDeal = allDeals.find(d => d.fomoKey === 'hot') || allDeals[0];
 
-  /* ── Render ────────────────────────────────────────────────────────── */
+  /* ── Render ─────────────────────────────────────────────────────── */
 
   return (
     <SafeAreaView style={styles.safe}>
 
-      {/* ── Top Bar ──────────────────────────────────────────────────── */}
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
-          <Icon name="tune" size={20} color={C.dark} />
-          {activeFilterCount > 0 && (
-            <View style={styles.badge}><Text style={styles.badgeTxt}>{activeFilterCount}</Text></View>
-          )}
-        </TouchableOpacity>
+      {/* ── Top Bar ─────────────────────────────────────────────────── */}
+      <View style={styles.topBarOuter}>
+        <View style={[styles.topBarInner, isDesktop && styles.topBarInnerDesktop]}>
 
-        <View style={styles.brandMark}>
-          <Text style={styles.brandMarkTxt}>D%</Text>
-        </View>
+          {/* Brand — always visible; on desktop shows full name */}
+          <View style={styles.brand}>
+            <View style={styles.brandMark}>
+              <Text style={styles.brandMarkTxt}>D%</Text>
+            </View>
+            {isDesktop && <Text style={styles.brandName}>Donnie Discount</Text>}
+          </View>
 
-        <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
-          <Icon name="search" size={16} color={C.grey} />
-          <TextInput
-            ref={searchRef}
-            style={styles.searchInput}
-            value={query}
-            onChangeText={handleQueryChange}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-            onSubmitEditing={handleSearchSubmit}
-            placeholder="Zoek deals..."
-            placeholderTextColor={C.grey}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => { setQuery(''); setSuggestions([]); applyFilters(); }}>
-              <Icon name="close" size={16} color={C.grey} />
+          {/* Filter button — mobile/tablet left side */}
+          {!isDesktop && (
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
+              <Icon name="tune" size={20} color={C.dark} />
+              {activeFilterCount > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeTxt}>{activeFilterCount}</Text></View>
+              )}
             </TouchableOpacity>
           )}
-        </View>
 
-        <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
-          <Icon name="menu" size={20} color={C.dark} />
-        </TouchableOpacity>
+          {/* Search */}
+          <View style={[styles.searchWrap, searchFocused && styles.searchWrapFocused]}>
+            <Icon name="search" size={16} color={C.grey} />
+            <TextInput
+              ref={searchRef}
+              style={styles.searchInput}
+              value={query}
+              onChangeText={handleQueryChange}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+              onSubmitEditing={handleSearchSubmit}
+              placeholder="Zoek deals..."
+              placeholderTextColor={C.grey}
+              returnKeyType="search"
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => { setQuery(''); setSuggestions([]); applyFilters(); }}>
+                <Icon name="close" size={16} color={C.grey} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Desktop: nav links replace bottom tab bar */}
+          {isDesktop && (
+            <View style={styles.desktopNav}>
+              <DesktopNavBtn
+                icon="home" iconActive="home" label="Home"
+                active={activeTab === 'home'} onPress={() => setActiveTab('home')}
+              />
+              <DesktopNavBtn
+                icon="favorite-border" iconActive="favorite" label="Favorieten"
+                active={activeTab === 'favorites'}
+                badge={favorites.size > 0 ? favorites.size : null}
+                onPress={() => setActiveTab('favorites')}
+              />
+              <DesktopNavBtn
+                icon="card-giftcard" iconActive="card-giftcard" label="Rewards"
+                active={activeTab === 'rewards'} onPress={() => setActiveTab('rewards')}
+              />
+            </View>
+          )}
+
+          {/* Filter button on desktop (right side) */}
+          {isDesktop && (
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
+              <Icon name="tune" size={20} color={C.dark} />
+              {activeFilterCount > 0 && (
+                <View style={styles.badge}><Text style={styles.badgeTxt}>{activeFilterCount}</Text></View>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Menu always visible */}
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
+            <Icon name="menu" size={20} color={C.dark} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* ── Category Tab Bar ──────────────────────────────────────────── */}
-      <CategoryTabBar activeCat={activeCat} onSelect={handleCatChange} />
+      {/* ── Category Tab Bar ─────────────────────────────────────────── */}
+      <CategoryTabBar activeCat={activeCat} onSelect={handleCatChange} isDesktop={isDesktop} />
 
       {/* ── Search suggestions ────────────────────────────────────────── */}
       {searchFocused && suggestions.length > 0 && (
@@ -513,83 +566,96 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {/* ── Content (swipeable) ───────────────────────────────────────── */}
-      <View style={{ flex: 1 }} {...(activeTab === 'home' ? panResponder.panHandlers : {})}>
+      {/* ── Content ──────────────────────────────────────────────────── */}
+      <View style={{ flex: 1 }} {...(!isDesktop && activeTab === 'home' ? panResponder.panHandlers : {})}>
         {activeTab === 'home' && (
-          <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideAnim }] }]}>
-            {loading && deals.length === 0 ? (
-              <FlatList
-                data={[1, 2, 3, 4, 5, 6]}
-                keyExtractor={item => String(item)}
-                numColumns={2}
-                contentContainerStyle={styles.list}
-                renderItem={() => <SkeletonCard />}
-                scrollEnabled={false}
-              />
-            ) : (
-              <FlatList
-                data={deals}
-                keyExtractor={item => item.id}
-                numColumns={2}
-                columnWrapperStyle={styles.row}
-                contentContainerStyle={styles.list}
-                renderItem={({ item }) => (
-                  <DealCard
-                    deal={item}
-                    onPress={() => handleDealPress(item)}
-                    onFavorite={() => handleFavoriteWithTracking(item.id)}
-                    isFavorited={favorites.has(item.id)}
-                    t={t}
-                  />
-                )}
-                refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.red} colors={[C.red]} />
-                }
-                onEndReached={onEndReached}
-                onEndReachedThreshold={0.5}
-                ListHeaderComponent={
-                  <HomeHeader
-                    featuredDeal={featuredDeal}
-                    dealCount={allDeals.length}
-                    favorites={favorites}
-                    onDealPress={handleDealPress}
-                    onFavorite={handleFavoriteWithTracking}
-                    t={t}
-                  />
-                }
-              />
-            )}
+          <Animated.View style={{ flex: 1, transform: [{ translateX: slideAnim }] }}>
+            {/* Center content on desktop */}
+            <View style={[{ flex: 1 }, isDesktop && styles.centeredContent]}>
+              {loading && deals.length === 0 ? (
+                <FlatList
+                  key={`skel-${numCols}`}
+                  data={[1, 2, 3, 4, 5, 6, numCols > 2 ? 7 : null, numCols > 3 ? 8 : null].filter(Boolean)}
+                  keyExtractor={item => String(item)}
+                  numColumns={numCols}
+                  columnWrapperStyle={styles.row}
+                  contentContainerStyle={styles.list}
+                  renderItem={() => <SkeletonCard />}
+                  scrollEnabled={false}
+                />
+              ) : (
+                <FlatList
+                  key={String(numCols)}
+                  data={deals}
+                  keyExtractor={item => item.id}
+                  numColumns={numCols}
+                  columnWrapperStyle={styles.row}
+                  contentContainerStyle={styles.list}
+                  renderItem={({ item }) => (
+                    <DealCard
+                      deal={item}
+                      onPress={() => handleDealPress(item)}
+                      onFavorite={() => handleFavoriteWithTracking(item.id)}
+                      isFavorited={favorites.has(item.id)}
+                      t={t}
+                    />
+                  )}
+                  refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.red} colors={[C.red]} />
+                  }
+                  onEndReached={onEndReached}
+                  onEndReachedThreshold={0.5}
+                  ListHeaderComponent={
+                    <HomeHeader
+                      featuredDeal={featuredDeal}
+                      dealCount={allDeals.length}
+                      favorites={favorites}
+                      featuredHeight={featH}
+                      onDealPress={handleDealPress}
+                      onFavorite={handleFavoriteWithTracking}
+                      t={t}
+                    />
+                  }
+                />
+              )}
+            </View>
           </Animated.View>
         )}
 
         {activeTab === 'favorites' && (
-          <FavoritesScreen
-            allDeals={allDeals.length ? allDeals : mockDeals}
-            favorites={favorites}
-            onDealPress={handleDealPress}
-            onFavoriteToggle={handleFavoriteWithTracking}
-            onBrowse={() => setActiveTab('home')}
-            t={t}
-          />
+          <View style={[{ flex: 1 }, isDesktop && styles.centeredContent]}>
+            <FavoritesScreen
+              allDeals={allDeals.length ? allDeals : mockDeals}
+              favorites={favorites}
+              onDealPress={handleDealPress}
+              onFavoriteToggle={handleFavoriteWithTracking}
+              onBrowse={() => setActiveTab('home')}
+              t={t}
+            />
+          </View>
         )}
 
         {activeTab === 'rewards' && (
-          <RewardsScreen points={points} streak={streak} clicks={clicks} favCount={favCount} />
+          <View style={[{ flex: 1 }, isDesktop && styles.centeredContent]}>
+            <RewardsScreen points={points} streak={streak} clicks={clicks} favCount={favCount} />
+          </View>
         )}
       </View>
 
-      {/* ── Bottom Tab Bar ────────────────────────────────────────────── */}
-      <View style={styles.tabBar}>
-        <TabBtn icon="favorite-border" iconActive="favorite" label="Favorieten"
-          active={activeTab === 'favorites'} badge={favorites.size > 0 ? favorites.size : null}
-          onPress={() => setActiveTab('favorites')} />
-        <View style={styles.tabSep} />
-        <TabBtn icon="home" iconActive="home" label="Home"
-          active={activeTab === 'home'} onPress={() => setActiveTab('home')} />
-        <View style={styles.tabSep} />
-        <TabBtn icon="card-giftcard" iconActive="card-giftcard" label="Rewards"
-          active={activeTab === 'rewards'} onPress={() => setActiveTab('rewards')} />
-      </View>
+      {/* ── Bottom Tab Bar — mobile/tablet only ──────────────────────── */}
+      {!isDesktop && (
+        <View style={styles.tabBar}>
+          <TabBtn icon="favorite-border" iconActive="favorite" label="Favorieten"
+            active={activeTab === 'favorites'} badge={favorites.size > 0 ? favorites.size : null}
+            onPress={() => setActiveTab('favorites')} />
+          <View style={styles.tabSep} />
+          <TabBtn icon="home" iconActive="home" label="Home"
+            active={activeTab === 'home'} onPress={() => setActiveTab('home')} />
+          <View style={styles.tabSep} />
+          <TabBtn icon="card-giftcard" iconActive="card-giftcard" label="Rewards"
+            active={activeTab === 'rewards'} onPress={() => setActiveTab('rewards')} />
+        </View>
+      )}
 
       {/* ── Modals ────────────────────────────────────────────────────── */}
       <DealModal
@@ -598,7 +664,6 @@ export default function HomeScreen() {
         onFavorite={() => selectedDeal && toggleFavorite(selectedDeal.id)}
         t={t}
       />
-
       <FilterPanel
         visible={filterVisible} onClose={() => setFilterVisible(false)}
         activeDisc={activeDisc} setActiveDisc={setActiveDisc}
@@ -606,17 +671,17 @@ export default function HomeScreen() {
         maxPrice={maxPrice} setMaxPrice={setMaxPrice}
         onApply={applyFilters} onReset={handleFilterReset}
       />
-
       <MenuDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
-
       <PWAInstallBanner />
     </SafeAreaView>
   );
 }
 
-/* ── Featured Deal Header ────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────
+   Featured Deal Header
+───────────────────────────────────────────────────────────────────── */
 
-function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorite, t }) {
+function HomeHeader({ featuredDeal, dealCount, favorites, featuredHeight, onDealPress, onFavorite, t }) {
   if (!featuredDeal) return null;
   const store = t?.affiliates?.[featuredDeal.affiliateStore] ?? { name: featuredDeal.affiliateStore, color: C.navy };
 
@@ -629,9 +694,8 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
         </View>
 
         <TouchableOpacity style={styles.featuredCard} onPress={() => onDealPress(featuredDeal)} activeOpacity={0.93}>
-          <Image source={{ uri: featuredDeal.image }} style={styles.featuredImage} resizeMode="cover" />
+          <Image source={{ uri: featuredDeal.image }} style={[styles.featuredImage, { height: featuredHeight }]} resizeMode="cover" />
 
-          {/* Gradient overlay — CSS gradient on web so no solid block */}
           <View
             style={[
               styles.featuredOverlay,
@@ -673,7 +737,9 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
   );
 }
 
-/* ── Tab button ──────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────
+   Bottom tab button (mobile only)
+───────────────────────────────────────────────────────────────────── */
 
 function TabBtn({ icon, iconActive, label, active, badge, onPress }) {
   return (
@@ -693,20 +759,41 @@ function TabBtn({ icon, iconActive, label, active, badge, onPress }) {
   );
 }
 
-/* ── Styles ──────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────
+   Styles
+───────────────────────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.lightGrey },
 
-  // Top bar
-  topBar: {
-    flexDirection: 'row', alignItems: 'center',
+  // Top bar shell (full-width) + inner (max-width on desktop)
+  topBarOuter: {
     backgroundColor: '#F5F5F7',
-    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 4, elevation: 2, zIndex: 10,
   },
+  topBarInner: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+  },
+  topBarInnerDesktop: {
+    maxWidth: 1400, alignSelf: 'center', width: '100%',
+    paddingHorizontal: 20, paddingVertical: 12,
+  },
+
+  // Brand
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  brandMark: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
+  },
+  brandMarkTxt: { color: C.white, fontFamily: 'Open Sans, system-ui, sans-serif', fontWeight: '800', fontSize: 11 },
+  brandName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '800', color: C.dark },
+
+  // Icon button (filter, menu)
   iconBtn: {
     width: 38, height: 38, borderRadius: R.md,
     backgroundColor: 'rgba(0,0,0,0.05)',
@@ -718,11 +805,8 @@ const styles = StyleSheet.create({
     backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
   },
   badgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
-  brandMark: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
-  },
-  brandMarkTxt: { color: C.white, fontFamily: 'Open Sans, system-ui, sans-serif', fontWeight: '800', fontSize: 11 },
+
+  // Search
   searchWrap: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
     backgroundColor: C.white, borderRadius: R.full,
@@ -735,7 +819,13 @@ const styles = StyleSheet.create({
     fontSize: 13, color: C.dark, outlineStyle: 'none', height: '100%',
   },
 
-  // Suggestions
+  // Desktop nav group (between search and buttons)
+  desktopNav: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+
+  // Centered content container on desktop
+  centeredContent: { maxWidth: 1400, alignSelf: 'center', width: '100%' },
+
+  // Search suggestions
   suggestions: {
     position: 'absolute', top: 112, left: 8, right: 8,
     backgroundColor: C.white, borderRadius: R.lg,
@@ -750,8 +840,8 @@ const styles = StyleSheet.create({
   suggestionTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '600', color: C.dark },
   suggestionPrice: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 1 },
 
-  // Deal list
-  list: { paddingBottom: 20 },
+  // Deal grid
+  list: { paddingBottom: 32, paddingHorizontal: 6 },
   row:  { alignItems: 'stretch' },
 
   // Featured Deal
@@ -762,11 +852,10 @@ const styles = StyleSheet.create({
     borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.dark,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 6,
   },
-  featuredImage: { width: '100%', height: 200 },
+  featuredImage: { width: '100%' },
   featuredOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 16, paddingTop: 64,
-    // backgroundColor set inline per platform (gradient on web, solid fallback on native)
+    padding: 16, paddingTop: 80,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   featuredStoreBadge: {
@@ -793,15 +882,14 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '700', color: C.dark, flex: 1 },
   sectionCount: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey, fontWeight: '500' },
 
-  // Bottom tab bar
+  // Bottom tab bar (mobile/tablet)
   tabBar: {
     flexDirection: 'row', backgroundColor: C.white,
     borderTopWidth: 1, borderTopColor: C.border,
     paddingBottom: Platform.OS === 'ios' ? 18 : 4, paddingTop: 4,
-    alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 8,
   },
-  tabSep: { width: 1, height: 28, backgroundColor: C.border },
+  tabSep: { width: 1, height: 28, backgroundColor: C.border, alignSelf: 'center' },
   tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 6 },
   tabBtnInner: { alignItems: 'center', gap: 2 },
   tabLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey, fontWeight: '500' },
