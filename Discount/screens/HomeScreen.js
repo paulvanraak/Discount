@@ -66,6 +66,16 @@ function CategoryTabBar({ activeCat, onSelect, isDesktop, onFilter, activeFilter
 
   return (
     <View style={tabBarStyles.wrap}>
+      {/* Filter button — desktop: LEFT of tabs, always visible */}
+      {isDesktop && (
+        <TouchableOpacity style={tabBarStyles.filterBtn} onPress={onFilter} activeOpacity={0.75}>
+          <Icon name="tune" size={18} color={activeFilterCount > 0 ? C.red : C.grey} />
+          {activeFilterCount > 0 && (
+            <Text style={tabBarStyles.filterCount}>{activeFilterCount}</Text>
+          )}
+        </TouchableOpacity>
+      )}
+
       {/* Scrollable tabs area */}
       <View style={tabBarStyles.scrollArea}>
         <ScrollView
@@ -106,16 +116,6 @@ function CategoryTabBar({ activeCat, onSelect, isDesktop, onFilter, activeFilter
           </View>
         )}
       </View>
-
-      {/* Filter button — desktop: right of tabs, always visible */}
-      {isDesktop && (
-        <TouchableOpacity style={tabBarStyles.filterBtn} onPress={onFilter} activeOpacity={0.75}>
-          <Icon name="tune" size={18} color={activeFilterCount > 0 ? C.red : C.grey} />
-          {activeFilterCount > 0 && (
-            <Text style={tabBarStyles.filterCount}>{activeFilterCount}</Text>
-          )}
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
@@ -144,7 +144,7 @@ const tabBarStyles = StyleSheet.create({
       : { backgroundColor: 'rgba(255,255,255,0.9)' }),
   },
   filterBtn: {
-    width: 52, borderLeftWidth: 1, borderLeftColor: C.border,
+    width: 52, borderRightWidth: 1, borderRightColor: C.border,
     justifyContent: 'center', alignItems: 'center', gap: 2,
     backgroundColor: C.white,
   },
@@ -629,6 +629,7 @@ export default function HomeScreen() {
                       dealCount={allDeals.length}
                       favorites={favorites}
                       featuredHeight={featH}
+                      isDesktop={isDesktop}
                       onDealPress={handleDealPress}
                       onFavorite={handleFavoriteWithTracking}
                       t={t}
@@ -699,13 +700,13 @@ export default function HomeScreen() {
    Featured Deal Header
 ───────────────────────────────────────────────────────────────────── */
 
-function HomeHeader({ featuredDeal, dealCount, favorites, featuredHeight, onDealPress, onFavorite, t }) {
+function HomeHeader({ featuredDeal, dealCount, favorites, featuredHeight, isDesktop, onDealPress, onFavorite, t }) {
   if (!featuredDeal) return null;
   const store = t?.affiliates?.[featuredDeal.affiliateStore] ?? { name: featuredDeal.affiliateStore, color: C.navy };
 
   return (
     <View>
-      <View style={styles.featuredWrap}>
+      <View style={[styles.featuredWrap, isDesktop && styles.featuredWrapDesktop]}>
         <View style={styles.featuredLabelRow}>
           <Icon name="local-fire-department" size={14} color={C.red} />
           <Text style={styles.featuredLabel}>UITGELICHTE DEAL</Text>
@@ -859,6 +860,7 @@ const styles = StyleSheet.create({
 
   // Featured Deal
   featuredWrap: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 4 },
+  featuredWrapDesktop: { maxWidth: 900, alignSelf: 'flex-start', width: '100%' },
   featuredLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   featuredLabel: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.red, letterSpacing: 1 },
   featuredCard: {
