@@ -6,6 +6,7 @@ import {
   Dimensions, useWindowDimensions,
 } from 'react-native';
 import Icon from '../components/Icon';
+import BrandMark from '../components/BrandMark';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DealCard from '../components/DealCard';
 import DealModal from '../components/DealModal';
@@ -462,9 +463,7 @@ export default function HomeScreen() {
 
           {/* Brand — always visible; on desktop shows full name */}
           <View style={styles.brand}>
-            <View style={styles.brandMark}>
-              <Text style={styles.brandMarkTxt}>D%</Text>
-            </View>
+            <BrandMark size={36} />
             {isDesktop && <Text style={styles.brandName}>Donnie Discount</Text>}
           </View>
 
@@ -786,11 +785,6 @@ const styles = StyleSheet.create({
 
   // Brand
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandMark: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
-  },
-  brandMarkTxt: { color: C.white, fontFamily: 'Open Sans, system-ui, sans-serif', fontWeight: '800', fontSize: 11 },
   brandName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '800', color: C.dark },
 
   // Icon button (filter, menu)
