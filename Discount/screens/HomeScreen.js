@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
 
   // Brand
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  brandName: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '800', color: C.dark },
+  brandName: { fontFamily: 'Nunito, "Open Sans", system-ui, sans-serif', fontSize: 17, fontWeight: '900', color: '#111111' },
 
   // Icon button (filter, menu)
   iconBtn: {

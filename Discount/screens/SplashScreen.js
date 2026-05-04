@@ -1,12 +1,21 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
+import BrandMark from '../components/BrandMark';
 
 export default function SplashScreen({ navigation }) {
   const { setLang, setRegion } = useLanguage();
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
+    // Fade + slide the logo in
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
+    ]).start();
+
     const timer = setTimeout(async () => {
       try {
         const [[, savedLang], [, savedRegion]] = await AsyncStorage.multiGet(['language', 'region']);
@@ -27,12 +36,14 @@ export default function SplashScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.brandMark}>
-        <Text style={styles.brandMarkTxt}>D%</Text>
-      </View>
-      <Text style={styles.logoText}>Donnie</Text>
-      <Text style={styles.logoSub}>Discount</Text>
-      <Text style={styles.tagline}>Extreme kortingen. Elke dag.</Text>
+      <Animated.View style={[styles.logoWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <BrandMark size={96} />
+        <View style={styles.textWrap}>
+          <Text style={styles.line1}>Donnie</Text>
+          <Text style={styles.line2}>Discount</Text>
+        </View>
+        <Text style={styles.tagline}>Extreme kortingen. Elke dag.</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -40,44 +51,39 @@ export default function SplashScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FF4040',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
   },
-  brandMark: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
+  logoWrap: {
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 0,
   },
-  brandMarkTxt: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 22,
+  textWrap: {
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 0,
   },
-  logoText: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 42,
-    fontWeight: '800',
-    color: '#fff',
+  line1: {
+    fontFamily: 'Nunito, "Open Sans", system-ui, sans-serif',
+    fontSize: 52,
+    fontWeight: '900',
+    color: '#111111',
+    lineHeight: 58,
   },
-  logoSub: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 34,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: -6,
+  line2: {
+    fontFamily: 'Nunito, "Open Sans", system-ui, sans-serif',
+    fontSize: 52,
+    fontWeight: '900',
+    color: '#111111',
+    lineHeight: 56,
   },
   tagline: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    marginTop: 16,
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 15,
+    fontFamily: '"Open Sans", system-ui, sans-serif',
+    fontSize: 14,
     fontWeight: '500',
+    color: '#8A9BAD',
+    marginTop: 20,
+    letterSpacing: 0.3,
   },
 });

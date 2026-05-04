@@ -13,7 +13,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   // Fonts
   const fonts = document.createElement('link');
   fonts.rel = 'stylesheet';
-  fonts.href = 'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap';
+  fonts.href = 'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Nunito:wght@800;900&display=swap';
   document.head.appendChild(fonts);
 
   const icons = document.createElement('link');
