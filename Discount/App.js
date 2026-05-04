@@ -21,6 +21,14 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   icons.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
   document.head.appendChild(icons);
 
+  // SVG favicon (smiley price-tag mark)
+  const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 108"><path d="M50,3 C76,3 95,16 95,36 L95,79 Q95,105 68,105 L32,105 Q5,105 5,79 L5,36 C5,16 24,3 50,3 Z" fill="#F0674E"/><circle cx="50" cy="20" r="8" fill="white"/><circle cx="34" cy="52" r="7" fill="white"/><circle cx="66" cy="52" r="7" fill="white"/><path d="M28,68 Q50,90 72,68" stroke="white" stroke-width="7.5" fill="none" stroke-linecap="round"/></svg>`;
+  const faviconLink = document.createElement('link');
+  faviconLink.rel = 'icon';
+  faviconLink.type = 'image/svg+xml';
+  faviconLink.href = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(faviconSvg)}`;
+  document.head.appendChild(faviconLink);
+
   // SEO meta tags
   document.title = 'Donnie Discount — Extreme kortingen. Elke dag.';
 
@@ -40,8 +48,8 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   addMeta({ property: 'og:type',          content: 'website' });
   addMeta({ property: 'og:title',         content: 'Donnie Discount — Extreme kortingen. Elke dag.' });
   addMeta({ property: 'og:description',   content: 'Elke dag nieuwe deals. Tot 80% korting op tech, fashion, keuken en meer.' });
-  addMeta({ property: 'og:url',           content: 'https://paulvanraak.github.io/Discount/' });
-  addMeta({ property: 'og:image',         content: 'https://paulvanraak.github.io/Discount/og-image.png' });
+  addMeta({ property: 'og:url',           content: 'https://donniediscount.com/' });
+  addMeta({ property: 'og:image',         content: 'https://donniediscount.com/og-image.png' });
   addMeta({ property: 'og:locale',        content: 'nl_NL' });
   addMeta({ name: 'twitter:card',         content: 'summary_large_image' });
   addMeta({ name: 'twitter:title',        content: 'Donnie Discount — Extreme kortingen' });

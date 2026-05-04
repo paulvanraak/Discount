@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../context/LanguageContext';
 import BrandMark from '../components/BrandMark';
+
+const isDesktop = Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth >= 1024;
 
 export default function SplashScreen({ navigation }) {
   const { setLang, setRegion } = useLanguage();
@@ -10,13 +12,7 @@ export default function SplashScreen({ navigation }) {
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // Fade + slide the logo in
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
-    ]).start();
-
-    const timer = setTimeout(async () => {
+    const navigate = async () => {
       try {
         const [[, savedLang], [, savedRegion]] = await AsyncStorage.multiGet(['language', 'region']);
         if (savedLang) {
@@ -29,10 +25,25 @@ export default function SplashScreen({ navigation }) {
       } catch {
         navigation.replace('Language');
       }
-    }, 1800);
+    };
 
+    if (isDesktop) {
+      // Skip splash entirely on desktop — navigate on next tick
+      const t = setTimeout(navigate, 0);
+      return () => clearTimeout(t);
+    }
+
+    // Mobile / tablet: animate in then navigate after 1800ms
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
+    ]).start();
+
+    const timer = setTimeout(navigate, 1800);
     return () => clearTimeout(timer);
   }, [navigation]);
+
+  if (isDesktop) return <View style={styles.container} />;
 
   return (
     <View style={styles.container}>
