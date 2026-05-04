@@ -6,18 +6,12 @@ import {
 import Icon from './Icon';
 import { C, R } from '../data/theme';
 
-const CATS = [
-  { key: 'all',     label: 'Alles',      icon: 'apps' },
-  { key: 'tech',    label: 'Tech',        icon: 'laptop' },
-  { key: 'fashion', label: 'Mode',        icon: 'checkroom' },
-  { key: 'home',    label: 'Wonen',       icon: 'weekend' },
-  { key: 'sport',   label: 'Sport',       icon: 'fitness-center' },
-  { key: 'beauty',  label: 'Beauty',      icon: 'spa' },
-  { key: 'toys',    label: 'Speelgoed',   icon: 'toys' },
-  { key: 'garden',  label: 'Tuin',        icon: 'yard' },
+const DISCOUNTS = [
+  { label: '40%+', value: 40 },
+  { label: '50%+', value: 50 },
+  { label: '60%+', value: 60 },
+  { label: '70%+', value: 70 },
 ];
-
-const DISCOUNTS = ['40%+', '50%+', '60%+', '70%+'];
 
 const PRICE_MIN  = 0;
 const PRICE_MAX  = 500;
@@ -53,19 +47,18 @@ function PriceSlider({ label, value, min, max, step, onChange }) {
 const sliderStyles = {
   wrap:     { marginHorizontal: 20, marginBottom: 16 },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  label:    { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, fontWeight: '600', color: C.grey },
-  value:    { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '800', color: C.red },
+  label:    { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 14, fontWeight: '600', color: C.grey },
+  value:    { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '800', color: C.red },
   tickRow:  { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  tick:     { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey },
+  tick:     { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey },
 };
 
 export default function FilterPanel({
   visible, onClose,
-  activeCat, setActiveCat,
   activeDisc, setActiveDisc,
   minPrice, setMinPrice,
   maxPrice, setMaxPrice,
-  onApply,
+  onApply, onReset,
 }) {
   const slideAnim = useRef(new Animated.Value(-PANEL_WIDTH)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -77,15 +70,12 @@ export default function FilterPanel({
   useEffect(() => {
     if (visible) {
       setPanelMounted(true);
-      Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
-        Animated.timing(fadeAnim,  { toValue: 1, duration: 260, useNativeDriver: true }),
-      ]).start();
+      // Use separate animations — JS driver for fade ensures first-frame opacity=0
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 260, useNativeDriver: false }).start();
     } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, { toValue: -PANEL_WIDTH, duration: 220, useNativeDriver: true }),
-        Animated.timing(fadeAnim,  { toValue: 0, duration: 200, useNativeDriver: true }),
-      ]).start(() => {
+      Animated.timing(slideAnim, { toValue: -PANEL_WIDTH, duration: 220, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => {
         slideAnim.setValue(-PANEL_WIDTH);
         fadeAnim.setValue(0);
         setPanelMounted(false);
@@ -94,15 +84,13 @@ export default function FilterPanel({
   }, [visible]);
 
   const handleClose = () => onClose();
-
   const handleApply = () => { onApply(); onClose(); };
 
   const handleReset = () => {
-    setActiveCat('all');
     setActiveDisc(null);
     setMinPrice('');
     setMaxPrice('');
-    onApply();
+    onReset();   // HomeScreen applies reset directly (avoids stale closure)
     onClose();
   };
 
@@ -116,7 +104,7 @@ export default function FilterPanel({
     setMaxPrice(clamped === PRICE_MAX ? '' : String(clamped));
   };
 
-  const activeCount = [activeCat !== 'all', activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
+  const activeCount = [activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
 
   return (
     <Modal visible={panelMounted} transparent animationType="none" onRequestClose={handleClose}>
@@ -141,45 +129,20 @@ export default function FilterPanel({
 
           <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
 
-            {/* ── Category 2-column grid ── */}
-            <Text style={styles.sectionLabel}>CATEGORIE</Text>
-            <View style={styles.catGrid}>
-              {CATS.map(({ key, label, icon }) => {
-                const active = activeCat === key;
-                return (
-                  <TouchableOpacity
-                    key={key}
-                    style={[styles.catChip, active && styles.catChipOn]}
-                    onPress={() => setActiveCat(key)}
-                    activeOpacity={0.75}
-                  >
-                    <Icon name={icon} size={15} color={active ? C.red : C.grey} />
-                    <Text style={[styles.catTxt, active && styles.catTxtOn]}>{label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* ── Discount — segmented control (fits in one row) ── */}
+            {/* ── Discount 2×2 grid ── */}
             <Text style={styles.sectionLabel}>MINIMALE KORTING</Text>
-            <View style={styles.segmentRow}>
-              {DISCOUNTS.map((d, i) => {
-                const active = activeDisc === d;
-                const isFirst = i === 0;
-                const isLast  = i === DISCOUNTS.length - 1;
+            <View style={styles.discountGrid}>
+              {DISCOUNTS.map(({ label, value }) => {
+                const active = activeDisc === value;
                 return (
                   <TouchableOpacity
-                    key={d}
-                    style={[
-                      styles.segment,
-                      isFirst && styles.segmentFirst,
-                      isLast  && styles.segmentLast,
-                      active  && styles.segmentOn,
-                    ]}
-                    onPress={() => setActiveDisc(active ? null : d)}
+                    key={value}
+                    style={[styles.discountBtn, active && styles.discountBtnOn]}
+                    onPress={() => setActiveDisc(active ? null : value)}
                     activeOpacity={0.75}
                   >
-                    <Text style={[styles.segmentTxt, active && styles.segmentTxtOn]}>{d}</Text>
+                    <Text style={[styles.discountTxt, active && styles.discountTxtOn]}>{label}</Text>
+                    <Text style={[styles.discountSub, active && styles.discountSubOn]}>of hoger</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -227,7 +190,7 @@ export default function FilterPanel({
           </View>
         </Animated.View>
 
-        {/* Backdrop fades in */}
+        {/* Backdrop fades in with JS driver (no first-frame flash) */}
         <Animated.View style={[styles.backdropWrap, { opacity: fadeAnim }]}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
         </Animated.View>
@@ -277,60 +240,42 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
     fontSize: 10, fontWeight: '700', color: C.grey, letterSpacing: 1,
-    marginTop: 20, marginBottom: 10, paddingHorizontal: 20,
+    marginTop: 20, marginBottom: 12, paddingHorizontal: 20,
   },
 
-  // Category 2-column grid
-  catGrid: {
+  // Discount 2×2 grid
+  discountGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 20,
+    marginBottom: 4,
   },
-  catChip: {
+  discountBtn: {
     width: '47%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 14,
     borderRadius: R.md,
     backgroundColor: C.lightGrey,
+    alignItems: 'center',
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  catChipOn:  { backgroundColor: C.red + '14', borderColor: C.red },
-  catTxt: {
+  discountBtnOn: { backgroundColor: C.red + '14', borderColor: C.red },
+  discountTxt: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13, fontWeight: '600', color: C.grey,
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.grey,
   },
-  catTxtOn: { color: C.red },
-
-  // Discount segmented control
-  segmentRow: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    borderRadius: R.md,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: C.border,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: C.white,
-    borderRightWidth: 1,
-    borderRightColor: C.border,
-  },
-  segmentFirst: { borderLeftWidth: 0 },
-  segmentLast:  { borderRightWidth: 0 },
-  segmentOn:    { backgroundColor: C.red },
-  segmentTxt: {
+  discountTxtOn: { color: C.red },
+  discountSub: {
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 12, fontWeight: '700', color: C.grey,
+    fontSize: 11,
+    fontWeight: '500',
+    color: C.grey,
+    marginTop: 2,
   },
-  segmentTxtOn: { color: C.white },
+  discountSubOn: { color: C.red },
 
   // Price summary
   priceDisplay: {

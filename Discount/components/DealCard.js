@@ -11,10 +11,12 @@ export default function DealCard({ deal, onPress, onFavorite, isFavorited, t }) 
       <View style={styles.imageWrap}>
         <Image source={{ uri: deal.image }} style={styles.image} resizeMode="cover" />
 
+        {/* Discount flag top-left */}
         <View style={styles.flag}>
           <Text style={styles.flagText}>-{deal.discountPercentage}%</Text>
         </View>
 
+        {/* Heart aligned with flag (same top: 12) */}
         <TouchableOpacity style={styles.heartBtn} onPress={onFavorite} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
           <Icon
             name={isFavorited ? 'favorite' : 'favorite-border'}
@@ -24,16 +26,17 @@ export default function DealCard({ deal, onPress, onFavorite, isFavorited, t }) 
         </TouchableOpacity>
       </View>
 
+      {/* Info: title grows, price + store pinned to bottom */}
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>{deal.title}</Text>
-
-        <View style={styles.priceRow}>
-          <Text style={styles.dealPrice}>€{deal.discountedPrice.toFixed(2)}</Text>
-          <Text style={styles.origPrice}>€{deal.originalPrice.toFixed(2)}</Text>
-        </View>
-
-        <View style={[styles.storeBadge, { backgroundColor: store.color + '18' }]}>
-          <Text style={[styles.storeText, { color: store.color }]}>{store.name}</Text>
+        <View style={styles.bottom}>
+          <View style={styles.priceRow}>
+            <Text style={styles.dealPrice}>€{deal.discountedPrice.toFixed(2)}</Text>
+            <Text style={styles.origPrice}>€{deal.originalPrice.toFixed(2)}</Text>
+          </View>
+          <View style={[styles.storeBadge, { backgroundColor: store.color + '18' }]}>
+            <Text style={[styles.storeText, { color: store.color }]}>{store.name}</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -81,7 +84,7 @@ const styles = StyleSheet.create({
   },
   heartBtn: {
     position: 'absolute',
-    top: 8,
+    top: 12,       // aligned with flag
     right: 8,
     width: 30,
     height: 30,
@@ -92,13 +95,18 @@ const styles = StyleSheet.create({
   },
   info: {
     padding: 10,
-    gap: 4,
+    flex: 1,
+    justifyContent: 'space-between',
+    minHeight: 90,
   },
   title: {
     ...S.h3,
     fontSize: 15,
     lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  bottom: {
+    gap: 6,
   },
   priceRow: {
     flexDirection: 'row',
@@ -122,7 +130,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: R.full,
-    marginTop: 4,
   },
   storeText: {
     fontFamily: 'Open Sans, system-ui, sans-serif',

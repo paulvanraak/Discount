@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, SafeAreaView,
   RefreshControl, TouchableOpacity, TextInput,
-  Platform, Image, Animated,
+  Platform, Image, Animated, ScrollView, PanResponder,
 } from 'react-native';
 import Icon from '../components/Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,10 +17,21 @@ import RewardsScreen from './RewardsScreen';
 import { fetchDeals, recordClick } from '../services/api';
 import { mockDeals } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
-import { trackDealClick, trackAddToWishlist, trackPurchaseIntent } from '../services/analytics';
+import { trackDealClick, trackAddToWishlist } from '../services/analytics';
 import { C, R } from '../data/theme';
 
 const PAGE_SIZE = 8;
+
+const CATS = [
+  { key: 'all',     label: 'Alles',      icon: 'apps' },
+  { key: 'tech',    label: 'Tech',        icon: 'laptop' },
+  { key: 'fashion', label: 'Mode',        icon: 'checkroom' },
+  { key: 'home',    label: 'Wonen',       icon: 'weekend' },
+  { key: 'sport',   label: 'Sport',       icon: 'fitness-center' },
+  { key: 'beauty',  label: 'Beauty',      icon: 'spa' },
+  { key: 'toys',    label: 'Speelgoed',   icon: 'toys' },
+  { key: 'garden',  label: 'Tuin',        icon: 'yard' },
+];
 
 export default function HomeScreen() {
   const { t, region } = useLanguage();
@@ -33,7 +44,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [activeCat, setActiveCat] = useState('all');
-  const [activeDisc, setActiveDisc] = useState(null);
+  const [activeDisc, setActiveDisc] = useState(null);  // number or null
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [filterVisible, setFilterVisible] = useState(false);
@@ -54,6 +65,10 @@ export default function HomeScreen() {
   const [streakToast, setStreakToast] = useState(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
+  // Ref for swipe detection so PanResponder can access current category
+  const activeCatRef = useRef(activeCat);
+  useEffect(() => { activeCatRef.current = activeCat; }, [activeCat]);
+
   useEffect(() => {
     loadPersistedFilters();
     loadFavorites();
@@ -65,14 +80,15 @@ export default function HomeScreen() {
       const [[, cat], [, disc], [, min], [, max]] = await AsyncStorage.multiGet(
         ['dd_filter_cat', 'dd_filter_disc', 'dd_filter_min', 'dd_filter_max']
       );
-      const resolvedCat = cat || 'all';
-      const resolvedMin = min || '';
-      const resolvedMax = max || '';
-      if (cat) setActiveCat(resolvedCat);
-      if (disc) setActiveDisc(disc);
-      if (min) setMinPrice(resolvedMin);
-      if (max) setMaxPrice(resolvedMax);
-      loadDeals(resolvedCat, disc || null, resolvedMin, resolvedMax);
+      const resolvedCat  = cat || 'all';
+      const resolvedDisc = disc ? parseInt(disc, 10) : null;
+      const resolvedMin  = min || '';
+      const resolvedMax  = max || '';
+      if (cat)  setActiveCat(resolvedCat);
+      if (disc) setActiveDisc(resolvedDisc);
+      if (min)  setMinPrice(resolvedMin);
+      if (max)  setMaxPrice(resolvedMax);
+      loadDeals(resolvedCat, resolvedDisc, resolvedMin, resolvedMax);
     } catch {
       loadDeals('all', null, '', '');
     }
@@ -80,8 +96,7 @@ export default function HomeScreen() {
 
   const loadDeals = useCallback(async (cat, disc, min, max, search = '') => {
     try {
-      const minDiscount = disc ? parseInt(disc, 10) : undefined;
-      let result = await fetchDeals({ category: cat, minDiscount, minPrice: min || undefined, maxPrice: max || undefined, region });
+      let result = await fetchDeals({ category: cat, minDiscount: disc || undefined, minPrice: min || undefined, maxPrice: max || undefined, region });
       if (search.trim()) {
         const q = search.toLowerCase();
         result = result.filter(d => d.title.toLowerCase().includes(q));
@@ -96,16 +111,38 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // Category tab change — triggers immediate reload
+  const handleCatChange = useCallback((cat) => {
+    setActiveCat(cat);
+    setLoading(true);
+    loadDeals(cat, activeDisc, minPrice, maxPrice, query);
+    AsyncStorage.setItem('dd_filter_cat', cat).catch(() => {});
+  }, [activeDisc, minPrice, maxPrice, query, loadDeals]);
+
   const applyFilters = useCallback(() => {
     setLoading(true);
     loadDeals(activeCat, activeDisc, minPrice, maxPrice, query);
     AsyncStorage.multiSet([
-      ['dd_filter_cat', activeCat],
-      ['dd_filter_disc', activeDisc || ''],
-      ['dd_filter_min', minPrice],
-      ['dd_filter_max', maxPrice],
+      ['dd_filter_cat',  activeCat],
+      ['dd_filter_disc', activeDisc != null ? String(activeDisc) : ''],
+      ['dd_filter_min',  minPrice],
+      ['dd_filter_max',  maxPrice],
     ]).catch(() => {});
   }, [activeCat, activeDisc, minPrice, maxPrice, query, loadDeals]);
+
+  // Reset directly loads without stale closure problem
+  const handleFilterReset = useCallback(() => {
+    setActiveDisc(null);
+    setMinPrice('');
+    setMaxPrice('');
+    setLoading(true);
+    loadDeals(activeCat, null, '', '', query);
+    AsyncStorage.multiSet([
+      ['dd_filter_disc', ''],
+      ['dd_filter_min',  ''],
+      ['dd_filter_max',  ''],
+    ]).catch(() => {});
+  }, [activeCat, query, loadDeals]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -188,7 +225,6 @@ export default function HomeScreen() {
         const newP = p + 2;
         setPoints(newP);
         await AsyncStorage.setItem('dd_points', String(newP));
-        // Show streak toast when user comes back a consecutive day
         if (s > 1) {
           setStreakToast(s);
           Animated.sequence([
@@ -196,7 +232,6 @@ export default function HomeScreen() {
             Animated.delay(3200),
             Animated.timing(toastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
           ]).start(() => setStreakToast(null));
-          // Request notification permission so future streak reminders can reach them
           if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
           }
@@ -236,15 +271,36 @@ export default function HomeScreen() {
     if (deal && !favorites.has(dealId)) trackAddToWishlist(deal);
   };
 
-  const activeFilterCount = [activeCat !== 'all', activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
+  // Swipe left/right to change category
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 15 && Math.abs(gs.dy) < 25,
+      onPanResponderRelease: (_, gs) => {
+        if (Math.abs(gs.dx) < 50) return;
+        const keys = CATS.map(c => c.key);
+        const idx  = keys.indexOf(activeCatRef.current);
+        if (gs.dx < 0 && idx < keys.length - 1) {
+          handleCatChangeRef.current(keys[idx + 1]);
+        } else if (gs.dx > 0 && idx > 0) {
+          handleCatChangeRef.current(keys[idx - 1]);
+        }
+      },
+    })
+  ).current;
 
+  // Ref so panResponder always calls the latest handleCatChange
+  const handleCatChangeRef = useRef(handleCatChange);
+  useEffect(() => { handleCatChangeRef.current = handleCatChange; }, [handleCatChange]);
+
+  const activeFilterCount = [activeDisc !== null, minPrice !== '', maxPrice !== ''].filter(Boolean).length;
   const featuredDeal = allDeals.find(d => d.fomoKey === 'hot') || allDeals[0];
-  const gridDeals = deals;
 
   return (
     <SafeAreaView style={styles.safe}>
 
-      {/* ── Top Bar ──────────────────────────────────────────────────── */}
+      {/* ── Top Bar (light grey) ─────────────────────────────────────── */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setFilterVisible(true)}>
           <Icon name="tune" size={20} color={C.dark} />
@@ -285,6 +341,30 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Category Tab Bar ──────────────────────────────────────────── */}
+      <View style={styles.catBarWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catBarContent}
+        >
+          {CATS.map(({ key, label, icon }) => {
+            const active = activeCat === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.catTab, active && styles.catTabActive]}
+                onPress={() => handleCatChange(key)}
+                activeOpacity={0.75}
+              >
+                <Icon name={icon} size={14} color={active ? C.red : C.grey} />
+                <Text style={[styles.catTabLabel, active && styles.catTabLabelActive]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* ── Search suggestions ────────────────────────────────────────── */}
       {searchFocused && suggestions.length > 0 && (
         <View style={styles.suggestions}>
@@ -311,8 +391,8 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {/* ── Content area ──────────────────────────────────────────────── */}
-      <View style={{ flex: 1 }}>
+      {/* ── Content (swipeable) ───────────────────────────────────────── */}
+      <View style={{ flex: 1 }} {...(activeTab === 'home' ? panResponder.panHandlers : {})}>
         {activeTab === 'home' && (
           <>
             {loading && deals.length === 0 ? (
@@ -326,9 +406,10 @@ export default function HomeScreen() {
               />
             ) : (
               <FlatList
-                data={gridDeals}
+                data={deals}
                 keyExtractor={item => item.id}
                 numColumns={2}
+                columnWrapperStyle={styles.row}
                 contentContainerStyle={styles.list}
                 renderItem={({ item }) => (
                   <DealCard
@@ -375,27 +456,25 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* ── Bottom Tab Bar ────────────────────────────────────────────── */}
+      {/* ── Bottom Tab Bar (flat, 3 equal sections with separators) ───── */}
       <View style={styles.tabBar}>
         <TabBtn
-          icon="favorite-border"
-          iconActive="favorite"
+          icon="favorite-border" iconActive="favorite"
           label="Favorieten"
           active={activeTab === 'favorites'}
           badge={favorites.size > 0 ? favorites.size : null}
           onPress={() => setActiveTab('favorites')}
         />
+        <View style={styles.tabSep} />
         <TabBtn
-          icon="home"
-          iconActive="home"
+          icon="home" iconActive="home"
           label="Home"
           active={activeTab === 'home'}
-          isCenter
           onPress={() => setActiveTab('home')}
         />
+        <View style={styles.tabSep} />
         <TabBtn
-          icon="card-giftcard"
-          iconActive="card-giftcard"
+          icon="card-giftcard" iconActive="card-giftcard"
           label="Rewards"
           active={activeTab === 'rewards'}
           onPress={() => setActiveTab('rewards')}
@@ -415,8 +494,6 @@ export default function HomeScreen() {
       <FilterPanel
         visible={filterVisible}
         onClose={() => setFilterVisible(false)}
-        activeCat={activeCat}
-        setActiveCat={setActiveCat}
         activeDisc={activeDisc}
         setActiveDisc={setActiveDisc}
         minPrice={minPrice}
@@ -424,6 +501,7 @@ export default function HomeScreen() {
         maxPrice={maxPrice}
         setMaxPrice={setMaxPrice}
         onApply={applyFilters}
+        onReset={handleFilterReset}
       />
 
       <MenuDrawer visible={menuVisible} onClose={() => setMenuVisible(false)} />
@@ -437,12 +515,10 @@ export default function HomeScreen() {
 
 function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorite, t }) {
   if (!featuredDeal) return null;
-
   const store = t?.affiliates?.[featuredDeal.affiliateStore] ?? { name: featuredDeal.affiliateStore, color: C.navy };
 
   return (
     <View>
-      {/* Featured Deal */}
       <View style={styles.featuredWrap}>
         <View style={styles.featuredLabelRow}>
           <Icon name="local-fire-department" size={14} color={C.red} />
@@ -478,7 +554,6 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
         </TouchableOpacity>
       </View>
 
-      {/* All deals section header */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Alle Deals</Text>
         <Text style={styles.sectionCount}>{dealCount} gevonden</Text>
@@ -489,20 +564,13 @@ function HomeHeader({ featuredDeal, dealCount, favorites, onDealPress, onFavorit
 
 /* ── Tab button ──────────────────────────────────────────────────────── */
 
-function TabBtn({ icon, iconActive, label, active, isCenter, badge, onPress }) {
-  const iconName = active ? iconActive : icon;
+function TabBtn({ icon, iconActive, label, active, badge, onPress }) {
   return (
     <TouchableOpacity style={styles.tabBtn} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.tabBtnInner}>
+      <View style={[styles.tabBtnInner, active && styles.tabBtnInnerActive]}>
         <View style={{ position: 'relative' }}>
-          {isCenter ? (
-            <View style={[styles.tabCenterInner, active && styles.tabCenterActive]}>
-              <Icon name={iconName} size={22} color={active ? C.white : C.grey} />
-            </View>
-          ) : (
-            <Icon name={iconName} size={22} color={active ? C.red : C.grey} />
-          )}
-          {badge != null && !isCenter && (
+          <Icon name={active ? iconActive : icon} size={20} color={active ? C.red : C.grey} />
+          {badge != null && (
             <View style={styles.tabBadge}>
               <Text style={styles.tabBadgeTxt}>{badge > 9 ? '9+' : badge}</Text>
             </View>
@@ -519,19 +587,19 @@ function TabBtn({ icon, iconActive, label, active, isCenter, badge, onPress }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.lightGrey },
 
-  // Top bar
+  // Top bar — light grey
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.redTint,
+    backgroundColor: '#F5F5F7',
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,64,64,0.12)',
+    borderBottomColor: C.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
     zIndex: 10,
@@ -540,306 +608,183 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: R.md,
-    backgroundColor: 'rgba(255,64,64,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: -4, right: -4,
+    width: 16, height: 16, borderRadius: 8,
     backgroundColor: C.red,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
   badgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
   brandMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: C.red,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center',
   },
   brandMarkTxt: {
     color: C.white,
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontWeight: '800',
-    fontSize: 11,
+    fontWeight: '800', fontSize: 11,
   },
   searchWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.lightGrey,
+    backgroundColor: C.white,
     borderRadius: R.full,
     paddingHorizontal: 12,
     height: 38,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: C.border,
     gap: 6,
   },
-  searchWrapFocused: { borderColor: C.red, backgroundColor: C.white },
+  searchWrapFocused: { borderColor: C.red },
   searchInput: {
     flex: 1,
     fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13,
-    color: C.dark,
-    outlineStyle: 'none',
-    height: '100%',
+    fontSize: 13, color: C.dark,
+    outlineStyle: 'none', height: '100%',
   },
+
+  // Category tab bar
+  catBarWrap: {
+    backgroundColor: C.white,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  catBarContent: { paddingHorizontal: 8, paddingVertical: 0 },
+  catTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  catTabActive: { borderBottomColor: C.red },
+  catTabLabel: {
+    fontFamily: 'Open Sans, system-ui, sans-serif',
+    fontSize: 13, fontWeight: '500', color: C.grey,
+  },
+  catTabLabelActive: { color: C.red, fontWeight: '700' },
 
   // Suggestions
   suggestions: {
     position: 'absolute',
-    top: 60,
-    left: 8,
-    right: 8,
+    top: 112, left: 8, right: 8,
     backgroundColor: C.white,
     borderRadius: R.lg,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 20,
-    zIndex: 999,
-    overflow: 'hidden',
+    shadowOpacity: 0.15, shadowRadius: 12,
+    elevation: 20, zIndex: 999, overflow: 'hidden',
   },
   suggestion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.lightGrey,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: C.lightGrey, gap: 10,
   },
   suggestionTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.dark,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, fontWeight: '600', color: C.dark,
   },
   suggestionPrice: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 11,
-    color: C.grey,
-    marginTop: 1,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, color: C.grey, marginTop: 1,
   },
 
   // List
-  list: { paddingBottom: 100 },
+  list: { paddingBottom: 20 },
+  row:  { alignItems: 'stretch' },
 
   // Featured Deal
   featuredWrap: { paddingHorizontal: 12, paddingTop: 16, paddingBottom: 4 },
-  featuredLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 8,
-  },
+  featuredLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   featuredLabel: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 10,
-    fontWeight: '700',
-    color: C.red,
-    letterSpacing: 1,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.red, letterSpacing: 1,
   },
   featuredCard: {
-    borderRadius: R.xl,
-    overflow: 'hidden',
-    backgroundColor: C.dark,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 6,
+    borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.dark,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 6,
   },
-  featuredImage: {
-    width: '100%',
-    height: 200,
-  },
+  featuredImage: { width: '100%', height: 200 },
   featuredOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    paddingTop: 40,
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    padding: 16, paddingTop: 40,
+    backgroundColor: 'rgba(0,0,0,0.52)',
   },
   featuredStoreBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: R.full,
-    marginBottom: 6,
+    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: R.full, marginBottom: 6,
   },
-  featuredStoreTxt: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 10,
-    fontWeight: '700',
-    color: C.white,
-  },
+  featuredStoreTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, fontWeight: '700', color: C.white },
   featuredTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.white,
-    lineHeight: 22,
-    marginBottom: 8,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 16, fontWeight: '700', color: C.white, lineHeight: 22, marginBottom: 8,
   },
-  featuredPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  featuredPrice: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 24,
-    fontWeight: '800',
-    color: C.white,
-  },
+  featuredPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  featuredPrice: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 24, fontWeight: '800', color: C.white },
   featuredOrig: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    textDecorationLine: 'line-through',
-    flex: 1,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.6)', textDecorationLine: 'line-through', flex: 1,
   },
-  featuredDiscount: {
-    backgroundColor: C.red,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: R.full,
-  },
-  featuredDiscountTxt: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 11,
-    fontWeight: '800',
-    color: C.white,
-  },
+  featuredDiscount: { backgroundColor: C.red, paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.full },
+  featuredDiscountTxt: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, fontWeight: '800', color: C.white },
   featuredHeart: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    position: 'absolute', top: 12, right: 12,
+    width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
 
   // Section headers
   sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 6,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8, gap: 6,
   },
   sectionTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.dark,
-    flex: 1,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 15, fontWeight: '700', color: C.dark, flex: 1,
   },
-  sectionCount: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 12,
-    color: C.grey,
-    fontWeight: '500',
-  },
+  sectionCount: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 12, color: C.grey, fontWeight: '500' },
 
-  // Bottom tab bar
+  // Bottom tab bar — flat, 3 equal sections
   tabBar: {
     flexDirection: 'row',
     backgroundColor: C.white,
     borderTopWidth: 1,
     borderTopColor: C.border,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-    paddingTop: 8,
-    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 18 : 4,
+    paddingTop: 4,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 8,
   },
-  tabBtn: { flex: 1, alignItems: 'center' },
+  tabSep: { width: 1, height: 28, backgroundColor: C.border },
+  tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 6 },
   tabBtnInner: { alignItems: 'center', gap: 2 },
-  tabCenterInner: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: C.lightGrey,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  tabCenterActive: { backgroundColor: C.red },
+  tabBtnInnerActive: {},
   tabLabel: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 10,
-    color: C.grey,
-    fontWeight: '500',
-    marginTop: 2,
+    fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 10, color: C.grey, fontWeight: '500',
   },
   tabLabelActive: { color: C.red, fontWeight: '700' },
   tabBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: C.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 3,
+    position: 'absolute', top: -4, right: -6,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: C.red, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3,
   },
   tabBadgeTxt: { color: C.white, fontSize: 9, fontWeight: '800' },
 
   // Streak toast
   streakToast: {
-    position: 'absolute',
-    top: 70,
-    left: 12,
-    right: 12,
-    zIndex: 100,
-    backgroundColor: C.dark,
-    borderRadius: R.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 20,
+    position: 'absolute', top: 120,
+    left: 12, right: 12, zIndex: 100,
+    backgroundColor: C.dark, borderRadius: R.lg,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 12, gap: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 20,
   },
   streakToastIcon: { fontSize: 26 },
-  streakToastTitle: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 14,
-    fontWeight: '800',
-    color: C.white,
-  },
-  streakToastSub: {
-    fontFamily: 'Open Sans, system-ui, sans-serif',
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.65)',
-    marginTop: 1,
-  },
+  streakToastTitle: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 14, fontWeight: '800', color: C.white },
+  streakToastSub: { fontFamily: 'Open Sans, system-ui, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
 });

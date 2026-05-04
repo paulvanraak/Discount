@@ -28,15 +28,12 @@ export default function MenuDrawer({ visible, onClose }) {
   useEffect(() => {
     if (visible) {
       setPanelMounted(true);
-      Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
-        Animated.timing(fadeAnim,  { toValue: 1, duration: 260, useNativeDriver: true }),
-      ]).start();
+      // Separate animations: transform on native driver, opacity on JS driver (no first-frame flash)
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 260, useNativeDriver: false }).start();
     } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, { toValue: PANEL_WIDTH, duration: 220, useNativeDriver: true }),
-        Animated.timing(fadeAnim,  { toValue: 0, duration: 200, useNativeDriver: true }),
-      ]).start(() => {
+      Animated.timing(slideAnim, { toValue: PANEL_WIDTH, duration: 220, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => {
         slideAnim.setValue(PANEL_WIDTH);
         fadeAnim.setValue(0);
         setPanelMounted(false);
@@ -127,14 +124,22 @@ function LocalePage() {
   const [selRegion, setSelRegion] = useState(region);
   const [saved, setSaved] = useState(false);
 
+  // Apply language immediately so all UI updates live
   const handleLangSelect = (code) => {
+    const firstRegion = LOCALE_REGIONS[code][0].code;
     setSelLang(code);
-    setSelRegion(LOCALE_REGIONS[code][0].code);
+    setSelRegion(firstRegion);
+    setLang(code);
+    setRegion(firstRegion);
+  };
+
+  // Apply region immediately
+  const handleRegionSelect = (code) => {
+    setSelRegion(code);
+    setRegion(code);
   };
 
   const save = async () => {
-    setLang(selLang);
-    setRegion(selRegion);
     await AsyncStorage.multiSet([['language', selLang], ['region', selRegion]]);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -174,7 +179,7 @@ function LocalePage() {
             <TouchableOpacity
               key={r.code}
               style={[localeStyles.regionChip, active && localeStyles.regionChipActive]}
-              onPress={() => setSelRegion(r.code)}
+              onPress={() => handleRegionSelect(r.code)}
               activeOpacity={0.85}
             >
               {active && <Icon name="check" size={14} color={C.red} style={{ marginRight: 4 }} />}
@@ -356,7 +361,7 @@ function ContactRow({ icon, label, value, onPress }) {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },  // Animated.View wrapper handles opacity
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
   panel: {
     width: PANEL_WIDTH,
     backgroundColor: C.white,
