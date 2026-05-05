@@ -143,6 +143,7 @@ export const CHECK_STEPS = [
         type: 'slider',
         label: 'Wat betaal je per maand?',
         showIf: (answers) => answers.vpn?.has_vpn === 'yes',
+        alwaysVisible: true,
         min: 0, max: 20, step: 1, default: 10, unit: '€',
       },
     ],

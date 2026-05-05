@@ -26,17 +26,17 @@ export default function CheckLayout({ step, currentIndex, total, onNext, onPrev,
           </span>
         </div>
 
-        {/* Progress dots */}
+        {/* Progress segments */}
         <div className="max-w-2xl mx-auto px-4 pb-3 flex items-center gap-1.5">
           {Array.from({ length: total }).map((_, i) => (
             <div
               key={i}
               className={[
-                'h-1.5 rounded-full flex-1 transition-all duration-300',
+                'h-1 rounded-sm flex-1 transition-all duration-300',
                 i < currentIndex
                   ? 'bg-primary-500'
                   : i === currentIndex
-                  ? 'bg-primary-500 opacity-60'
+                  ? 'bg-primary-500 opacity-50'
                   : 'bg-ink-100',
               ].join(' ')}
             />
@@ -46,16 +46,16 @@ export default function CheckLayout({ step, currentIndex, total, onNext, onPrev,
 
       {/* Content */}
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
-        {/* Stap-header */}
+        {/* Stap-header — 2pt groter */}
         <div className="flex items-center gap-3 mb-8">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconColor}`}>
+          <div className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColor}`}>
             <span className="material-symbols-rounded text-xl">{step.icon}</span>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">
               Stap {currentIndex + 1} van {total}
             </p>
-            <p className="text-base font-semibold text-ink-900">{step.title}</p>
+            <p className="text-lg font-semibold text-ink-900">{step.title}</p>
           </div>
         </div>
 
@@ -68,7 +68,7 @@ export default function CheckLayout({ step, currentIndex, total, onNext, onPrev,
           {!isFirst && (
             <button
               onClick={onPrev}
-              className="px-5 py-3 rounded-md border border-ink-100 text-ink-700 text-sm font-medium hover:bg-ink-50 transition-colors"
+              className="px-5 py-3 rounded-md border border-ink-100 text-ink-700 text-sm font-medium hover:bg-primary-50 hover:border-primary-200 hover:text-primary-600 transition-colors"
             >
               Vorige
             </button>
