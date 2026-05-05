@@ -12,7 +12,7 @@ export const BANKING_PROVIDERS = [
       '25 sub-rekeningen voor sparen',
       'Reizen zonder wisselkosten',
       'Boomplant-bonus per €100',
-      '€20 startbonus via Donnie',
+      '€20 startbonus via BespaarCheck',
     ],
     bonus: 20,
     bestChoice: true,

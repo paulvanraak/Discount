@@ -19,7 +19,7 @@ export default function CheckLayout({ step, currentIndex, total, onNext, onPrev,
       <div className="bg-white border-b border-ink-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="text-primary-500 font-semibold text-sm tracking-tight">
-            Bespaar met Donnie
+            BespaarCheck
           </Link>
           <span className="text-sm text-ink-400 font-medium">
             {currentIndex + 1} / {total}

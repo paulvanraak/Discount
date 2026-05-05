@@ -11,7 +11,7 @@ export default function AffiliateCTA({ provider, category }) {
         className="w-full justify-center text-base py-4"
         onClick={() => openAffiliateLink(provider, category.slug)}
       >
-        Stap over via Donnie
+        Stap over via BespaarCheck
         <Icon name="arrow_forward" className="text-[18px]" />
       </Button>
       <AffiliateDisclosure />

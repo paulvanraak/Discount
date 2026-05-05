@@ -11,7 +11,7 @@ export default function Hero() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <div className="max-w-2xl">
           <p className="text-primary-200 text-sm font-medium uppercase tracking-widest mb-4">
-            Bespaar met Donnie
+            BespaarCheck
           </p>
           <h1 className="text-3xl md:text-5xl font-semibold leading-tight tracking-tight mb-6" style={{ letterSpacing: '-0.02em' }}>
             Betaal je te veel voor energie, internet en je bank?

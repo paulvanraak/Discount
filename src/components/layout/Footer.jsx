@@ -62,11 +62,11 @@ export default function Footer() {
               <div className="flex gap-6 text-sm text-ink-500">
                 <a href="/privacy" className="hover:text-ink-700">Privacy</a>
                 <a href="/over" className="hover:text-ink-700">Over ons</a>
-                <a href="mailto:info@donniediscount.com" className="hover:text-ink-700">Contact</a>
+                <a href="mailto:info@bespaarcheck.nl" className="hover:text-ink-700">Contact</a>
               </div>
             </div>
             <AffiliateDisclosure />
-            <p className="text-xs text-ink-300 text-center mt-2">© 2026 Bespaar met Donnie</p>
+            <p className="text-xs text-ink-300 text-center mt-2">© 2026 BespaarCheck</p>
           </div>
         </footer>
       )}
