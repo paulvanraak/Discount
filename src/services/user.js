@@ -21,11 +21,11 @@ export async function getOrCreateUser() {
     .eq('anon_id', anonId)
     .single()
 
-  // Anders aanmaken
+  // Anders aanmaken (upsert om duplicate key bij race-condition te voorkomen)
   if (!user) {
     const { data, error } = await supabase
       .from('users')
-      .insert({ anon_id: anonId })
+      .upsert({ anon_id: anonId }, { onConflict: 'anon_id' })
       .select()
       .single()
     if (error) throw error
