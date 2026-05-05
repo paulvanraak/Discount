@@ -16,7 +16,7 @@ export default function CategoryCard({ category }) {
           </span>
         </div>
         <h3 className="font-medium text-ink-700 mb-1">{name}</h3>
-        <p className="text-sm text-ink-300">{tagline}</p>
+        <p className="text-sm text-ink-300 line-clamp-2">{tagline}</p>
       </div>
     )
   }
@@ -33,7 +33,7 @@ export default function CategoryCard({ category }) {
         <Icon name="arrow_forward" className="text-ink-300 text-[18px] group-hover:text-primary-500 transition-colors" />
       </div>
       <h3 className="font-medium text-ink-900 mb-1">{name}</h3>
-      <p className="text-sm text-ink-500">{tagline}</p>
+      <p className="text-sm text-ink-500 line-clamp-2">{tagline}</p>
     </Link>
   )
 }

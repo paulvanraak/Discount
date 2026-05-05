@@ -1,14 +1,20 @@
 export default function ScoreBadge({ score }) {
-  const color =
-    score >= 8 ? 'text-success' : score >= 6 ? 'text-warning' : 'text-danger'
+  const isGood = score >= 8
+  const isMedium = score >= 6
+
+  const color = isGood ? '#1D9E75' : isMedium ? '#EF9F27' : '#E24B4A'
+  const label = isGood ? 'Uitstekend' : isMedium ? 'Redelijk' : 'Ruimte voor verbetering'
 
   return (
-    <div className="inline-flex flex-col items-center">
-      <div className={`text-5xl font-semibold ${color}`}>
+    <div className="inline-flex flex-col items-center gap-1">
+      <div className="text-5xl font-bold leading-none" style={{ color }}>
         {score.toFixed(1)}
       </div>
-      <div className="text-xs uppercase tracking-widest text-ink-500 mt-1">
-        BespaarCheck-score
+      <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mt-0.5">
+        Score
+      </div>
+      <div className="text-xs text-white/60">
+        {label}
       </div>
     </div>
   )
